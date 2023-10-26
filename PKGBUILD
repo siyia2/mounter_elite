@@ -1,23 +1,24 @@
 # Maintainer: Siyia <eutychios23@gmail.com>
-pkgname=mounter_elite
-pkgver=1.1
+pkgname=elite-image-mounter
+pkgver=1.0.5
 pkgrel=1
-pkgdesc='A minimal dependency bash based, ISO mounter and converter'
+pkgdesc='A minimalist bash based, ISO mounter and converter'
 arch=('x86_64')
 url="https://github.com/siyia2/mounter_elite"
 license=('GPL3')
 depends=('bash' 'ccd2iso' 'sudo')
+md5sums=('76a427026158b89b3bbe87c3777ef18c')
 
-# Source should be a valid URL to the source code or a downloadable archive
 source=("https://github.com/siyia2/mounter_elite/archive/v${pkgver}.tar.gz")
 
 
 package() {
-  cd "${srcdir}/${pkgname}-$pkgver"
   
-  install -Dm755 mounter_elite "$pkgdir/usr/bin/mounter_elite"
+  cd "${srcdir}/mounter_elite-$pkgver"
+  
+  install -Dm755 elite-image-mounter "$pkgdir/usr/bin/mounter_elite"
   
 }
 
 
-md5sums=('af89f58ca40a9de47ef746b9df35e4aa')
+
