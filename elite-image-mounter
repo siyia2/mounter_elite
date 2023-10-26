@@ -104,7 +104,7 @@ convert_to_iso() {
 mounted_isos=()
 
 while true; do
-    clear
+    #clear
 
     echo " "
     echo -e "\e[1;32m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
