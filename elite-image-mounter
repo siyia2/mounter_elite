@@ -107,9 +107,9 @@ while true; do
     clear
 
     echo " "
-    echo -e "\e[1;32m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
-    echo -e "                     ELITE IMAGE MOUNTER                  "
-    echo -e "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\e[0m"
+    echo -e "\e[1;32m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+    echo -e "                   ELITE IMAGE MOUNTER                        "
+    echo -e "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\e[0m"
 
     echo "1. Mount ISO(s) (separate paths with space)"
     echo "2. Unmount ISO(s) (e.g., '1' or '1-2')"
