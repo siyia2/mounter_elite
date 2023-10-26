@@ -80,22 +80,22 @@ convert_to_iso() {
     for input_path in "${input_paths[@]}"; do
         if [ -e "$input_path" ]; then
             if [[ "$input_path" == *.iso ]]; then
-                echo "The file '$input_path' is already in ISO format."
+                echo -e "\e[1;33mThe file '$input_path' is already in ISO format.\e[0m"
             else
                 if command -v ccd2iso &>/dev/null; then
                     local output_path="${input_path%.*}.iso"
                     ccd2iso "$input_path" "$output_path"
                     if [ -e "$output_path" ]; then
-                        echo "Image file converted to ISO: $output_path"
+                        echo -e "\e[1;32mImage file converted to ISO: $output_path\e[0m"
                     else
-                        echo "Conversion of '$input_path' failed."
+                        echo -e "\e[1;31mConversion of '$input_path' failed.\e[0m"
                     fi
                 else
-                    echo "ccd2iso is not installed. Please install it before using this option."
+                    echo -e "\e[1;33mccd2iso is not installed. Please install it before using this option.\e[0m"
                 fi
             fi
         else
-            echo "The specified input file '$input_path' does not exist."
+            echo -e "\e[1;31mThe specified input file '$input_path' does not exist.\e[0m"
         fi
     done
 }
