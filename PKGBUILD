@@ -6,8 +6,7 @@ pkgdesc='A minimal dependency bash based, ISO mounter and converter'
 arch=('x86_64')
 url="https://github.com/siyia2/mounter_elite"
 license=('GPL3')
-depends=('bash')
-optdepends=('ccd2iso' 'sudo')
+depends=('bash' 'ccd2iso' 'sudo')
 
 # Source should be a valid URL to the source code or a downloadable archive
 source=("https://github.com/siyia2/mounter_elite/archive/v${pkgver}.tar.gz")
