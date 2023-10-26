@@ -111,11 +111,11 @@ while true; do
     echo -e "                     ELITE IMAGE MOUNTER                  "
     echo -e "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\e[0m"
 
-    echo "1. Mount ISO(s) (for multiple paths, separate with spaces)"
-    echo "2. Unmount an ISO or multiple ISOs (e.g., '1' or '1-2')"
+    echo "1. Mount ISO(s) (separate paths with space)"
+    echo "2. Unmount ISO(s) (e.g., '1' or '1-2')"
     echo "3. Unmount all ISOs"
-    echo "4. Open /mnt/"
-    echo "5. Convert IMG(s) to ISO(s) (for multiple paths, separate with spaces)"
+    echo "4. Convert IMG(s) to ISO(s) (separate paths with space)"
+    echo "5. Open /mnt/"
     echo "6. Exit"
     read -p "Choose an option (1/2/3/4/5/6): " choice
 
@@ -163,12 +163,12 @@ while true; do
             fi
             ;;
         4)
-            nohup xdg-open /mnt/ > /dev/null 2>&1&
-            read -p "Press Enter to return to the main menu..."
-            ;;
-        5)
             read -e -p "Enter the paths to the image files you want to convert (separated by spaces): " -a input_paths
             convert_to_iso "${input_paths[@]}"
+            read -p "Press Enter to return to the main menu..."
+            ;;            
+        5)
+            nohup xdg-open /mnt/ > /dev/null 2>&1&
             read -p "Press Enter to return to the main menu..."
             ;;
         6)
