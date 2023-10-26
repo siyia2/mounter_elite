@@ -7,6 +7,6 @@ You can add multiple mount&conversion paths, all valid paths are mounted under `
 
 I have also provided options to unmount the mounted `ISO` or `ISOs` and a choice for opening the `/mnt/` directory directly from the script.
 
-For the conversions `ccd2iso` is used, tried it with some `valid IMG and BIN` files and it works.
+For the conversions, `ccd2iso` is used, i tested it with some `valid IMG and BIN` files and it works.
 
 The executable is installed in `/usr/bin/mounter_elite`.
