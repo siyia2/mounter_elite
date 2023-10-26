@@ -2,7 +2,7 @@
 
 ## ELITE IMAGE MOUNTER
 
-Simple asf bash script, that allows you to mount ISOs and/or to convert BIN/IMG to ISO, just point it to the correct path and shoot.
+Simple asf bash script, that allows you to mount ISOs and/or to convert BIN/IMG files to ISO, just point it to the correct path and shoot.
 You can add multiple mount&conversion paths, all valid paths are mounted under /mnt/ all conversion happen in original file directory.
 
 I have also provided options to unmount the mounted ISO or ISOs and a choice for opening the /mnt/ directory directly from the script.
