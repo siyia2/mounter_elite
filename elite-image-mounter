@@ -100,11 +100,17 @@ convert_to_iso() {
     done
 }
 
+# Function to pause and wait for a key press
+pause() {
+    read -n 1 -s -r -p "Press any key to continue..."
+}
+
 # Array to store the list of mounted ISOs
 mounted_isos=()
 
 while true; do
-    #clear
+
+    clear
 
     echo " "
     echo -e "\e[1;32m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
@@ -129,6 +135,7 @@ while true; do
                     echo -e "\e[1;31mThe specified ISO file(s) '$iso_path' does not exist, no ISO mounted...\e[0m"
                 fi
             done
+            pause
             ;;
         2)
             if [ $iso_count -eq 1 ]; then
@@ -150,6 +157,7 @@ while true; do
                     unmount_iso "$unmount_selection"
                 fi
             fi
+            pause
             ;;
         3)
             if [ $iso_count -eq 1 ]; then
@@ -161,6 +169,7 @@ while true; do
                 iso_count=1
                 mounted_isos=()
             fi
+            pause
             ;;
         4)
             read -e -p "Enter the paths to the image files you want to convert (separated by spaces): " -a input_paths
