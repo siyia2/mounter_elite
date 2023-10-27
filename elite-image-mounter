@@ -10,21 +10,32 @@ BOLD=$(tput bold)
 iso_count=1
 iso_paths=()
 
-# Function to mount an ISO file
+# Function to mount an ISO file in parallel
 mount_iso() {
-	local iso_files=("$@")
-	for iso_file in "${iso_files[@]}"; do
-		local mount_point="/mnt/iso_$iso_count"
-		if [ -e "$mount_point" ]; then
-			echo "An ISO is already mounted at '$mount_point'."
-		else
-			sudo mkdir -p "$mount_point"
-			sudo mount -o loop "$iso_file" "$mount_point"
-			echo "ISO file '$iso_file' mounted at '$mount_point'."
-			mounted_isos+=("$mount_point") # Add the mount point to the list
-			((iso_count++))
-		fi
-	done
+    local iso_files=("$@")
+    
+    for iso_file in "${iso_files[@]}"; do
+        local mount_point="/mnt/iso_$iso_count"
+        
+        if [ -e "$mount_point" ]; then
+            echo "An ISO is already mounted at '$mount_point'."
+        else
+            sudo mkdir -p "$mount_point"
+            
+            (
+                # Subshell for parallel execution
+                sudo mount -o loop "$iso_file" "$mount_point"
+                echo "ISO file '$iso_file' mounted at '$mount_point'."
+                mounted_isos+=("$mount_point") # Add the mount point to the list
+                ((iso_count++))
+            ) &  # Run the subshell in the background
+        fi
+    done
+    
+    # Wait for all background jobs to complete
+    wait
+    
+    echo "All ISO files have been mounted."
 }
 
 # Function to unmount a specific ISO or multiple ISOs
@@ -115,7 +126,7 @@ list_iso_bin_img_files() {
 		# Use the choice_small parameter to determine which option was selected
 		case $choice in
 		1)
-			iso_files=$(find "$dir_path" -maxdepth 5 -type f -iname "*.iso" -print0 | xargs -0 -r realpath | sed 's/ /\\ /g')
+			iso_files=$(find "$dir_path" -maxdepth 5 -type f -iname "*.iso" -print0 | xargs -0 -r -P "$(nproc)" realpath | sed 's/ /\\ /g')
 			if [ -z "$iso_files" ]; then
 				echo -e "\e[1;33mNo .iso files were found under the specified path."
 			else
@@ -126,7 +137,7 @@ list_iso_bin_img_files() {
 			echo ""
 			;;
 		2)
-			bin_img_files=$(find "$dir_path" -maxdepth 5 -type f \( -iname "*.bin" -o -iname "*.img" \) -size +10M -print0 | xargs -0 -r realpath | sed 's/ /\\ /g')
+			bin_img_files=$(find "$dir_path" -maxdepth 5 -type f \( -iname "*.bin" -o -iname "*.img" \) -size +10M -print0 | xargs -0 -r -P "$(nproc)" realpath | sed 's/ /\\ /g')
 			if [ -z "$bin_img_files" ]; then
 				echo -e "\e[1;33mNo .bin or .img files (larger than 10MB) were found under the specified path."
 			else
