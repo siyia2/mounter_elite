@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# Read propmt color
+# Read propmt color and style
 YELLOW=$(tput setaf 3)
 RESET=$(tput sgr0)
+
+BOLD=$(tput bold)
 
 # Main script
 iso_count=1
@@ -111,7 +113,7 @@ list_iso_bin_img_files() {
 		echo "Choose an option to list files:"
 		echo -e "1. List \e[1;32m.iso\e[0m files"
 		echo -e "2. List \e[1;32m.bin\e[0m and \e[1;32m.img\e[0m files (\e[1;31mexcluding files smaller than 10MB\e[0m)"
-		read -r -p "${YELLOW}Enter your choice (1/2):${RESET} " list_option
+		read -r -p "${YELLOW}Enter your choice (1/2):${RESET}${BOLD} " list_option
 
 		case $list_option in
 		1)
@@ -169,11 +171,11 @@ while true; do
 	echo "5. Open /mnt/"
 	echo "6. Generate Image List"
 	echo "7. Exit"
-	read -r -p "${YELLOW}Choose an option (1/2/3/4/5/6/7):${RESET} " choice
+	read -r -p "${YELLOW}Choose an option (1/2/3/4/5/6/7):${RESET}${BOLD} " choice
 
 	case $choice in
 	1)
-		read -r -e -p "${YELLOW}Enter the paths to the ISO files (separated by spaces):${RESET} " iso_paths
+		read -r -e -p "${YELLOW}Enter the paths to the ISO files (separated by spaces):${RESET}${BOLD} " iso_paths
 
 		# Remove double quotes from the beginning and end of the string, if they exist
 		iso_paths="${iso_paths%\"}"
@@ -206,7 +208,7 @@ while true; do
 				echo -e "\e[1;31mNo ISOs are mounted.\e[0m"
 			fi
 
-			read -r -p "Enter the number(s) of the ISO(s) to unmount (e.g., '1' or '1-2') or 'exit' to go back: " unmount_selection
+			read -r -p "${YELLOW}Enter the number(s) of the ISO(s) to unmount (e.g., '1' or '1-2') or 'exit' to go back:${RESET}${BOLD} " unmount_selection
 			if [ "$unmount_selection" == "exit" ]; then
 				continue
 			else
@@ -230,7 +232,7 @@ while true; do
 		clear
 		;;
 	4)
-		read -r -e -p "${YELLOW}Enter the paths to the image files you want to convert (separated by spaces):${RESET} " input_paths
+		read -r -e -p "${YELLOW}Enter the paths to the image files you want to convert (separated by spaces):${RESET}${BOLD} " input_paths
 
 		# Remove double quotes from the beginning and end of the string, if they exist
 		input_paths="${input_paths%\"}"
@@ -248,7 +250,7 @@ while true; do
 		read -r -p "Press Enter to return to the main menu..."
 		;;
 	6)
-		read -r -e -p "${YELLOW}Enter the directory path to generate list:${RESET} " dir_path
+		read -r -e -p "${YELLOW}Enter the directory path to generate list:${RESET}${BOLD} " dir_path
 		list_iso_bin_img_files "$dir_path"
 		;;
 	7)
