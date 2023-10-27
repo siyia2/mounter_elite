@@ -9,7 +9,7 @@ You can add multiple mount or conversion paths, all valid paths are mounted unde
 
 I have also included options to unmount the mounted `ISO` or `ISOs` and a choice for opening the `/mnt/` directory directly from the script.
 
-In addition since `v1.2` and up, i have added an option to generate an image list under a user prompted path, it can significantly help in mounting or converting the images en masse, with the help of the clipboard
+In addition since `v1.2` and up, i have added an option to generate an image list under a user prompted path, it significantly speeds up mounting or converting images en masse, with the help of the clipboard
 
 For the conversions, `ccd2iso` is used, i tested it with some `valid IMG and BIN` files through my script and it works.
 
