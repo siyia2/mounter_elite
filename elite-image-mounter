@@ -261,7 +261,7 @@ while true; do
 		nohup xdg-open /mnt/ >/dev/null 2>&1 &
 		read -r -p "Press Enter to return to the main menu..."
 		;;
-	7)
+	6)
 		echo "Exiting the program."
 		exit 0
 		;;
