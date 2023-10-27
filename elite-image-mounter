@@ -112,13 +112,12 @@ list_iso_bin_img_files() {
 	if [ -d "$dir_path" ]; then
 		echo "Choose an option to list files:"
 		echo -e "1. List \e[1;32m.iso\e[0m files"
-		echo -e "2. List \e[1;32m.bin\e[0m and \e[1;32m.img\e[0m files (\e[1;31mexcluding files smaller than 10MB\e[0m)"
+		echo -e "2. List \e[1;32m.bin\e[0m and \e[1;32m.img\e0m files (\e[1;31mexcluding files smaller than 10MB\e[0m)"
 		read -r -p "${YELLOW}Enter your choice (1/2):${RESET}${BOLD} " list_option
 
 		case $list_option in
 		1)
-			clear
-			iso_files=$(find "$dir_path" -maxdepth 4 -type f -iname "*.iso" -exec realpath "{}" \; | sed 's/ /\\ /g')
+			iso_files=$(find "$dir_path" -maxdepth 4 -type f -iname "*.iso" -print0 | xargs -0 -r realpath | sed 's/ /\\ /g')
 			if [ -z "$iso_files" ]; then
 				echo -e "\e[1;33mNo .iso files were found under the specified path."
 			else
@@ -129,8 +128,7 @@ list_iso_bin_img_files() {
 			echo ""
 			;;
 		2)
-			clear
-			bin_img_files=$(find "$dir_path" -maxdepth 4 -type f \( -iname "*.bin" -o -iname "*.img" \) -size +10M -exec realpath "{}" \; | sed 's/ /\\ /g')
+			bin_img_files=$(find "$dir_path" -maxdepth 4 -type f \( -iname "*.bin" -o -iname "*.img" \) -size +10M -print0 | xargs -0 -r realpath | sed 's/ /\\ /g')
 			if [ -z "$bin_img_files" ]; then
 				echo -e "\e[1;33mNo .bin or .img files (larger than 10MB) were found under the specified path."
 			else
@@ -149,6 +147,7 @@ list_iso_bin_img_files() {
 	fi
 }
 
+
 # Function to pause and wait for a key press
 pause() {
 	read -n 1 -s -r -p "Press any key to continue..."
@@ -157,9 +156,11 @@ pause() {
 
 # Array to store the list of mounted ISOs
 mounted_isos=()
-clear
+	clear
 while true; do
 
+	clear
+	
 	echo -e "\e[1;32m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
 	echo -e "                   ELITE IMAGE MOUNTER                        "
 	echo -e "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\e[0m"
@@ -169,14 +170,21 @@ while true; do
 	echo "3. Unmount all ISOs"
 	echo "4. Convert IMG(s) to ISO(s) (separate paths with space)"
 	echo "5. Open /mnt/"
-	echo "6. Generate Image List"
-	echo "7. Exit"
-	read -r -p "${YELLOW}Choose an option (1/2/3/4/5/6/7):${RESET}${BOLD} " choice
+	echo "6. Exit"
+	read -r -p "${YELLOW}Choose an option (1/2/3/4/5/6):${RESET}${BOLD} " choice
 
 	case $choice in
-	1)
-		read -r -e -p "${YELLOW}Enter the paths to the ISO files (separated by spaces):${RESET}${BOLD} " iso_paths
-
+	1)	
+		read -r -e -p "${YELLOW}Press 1 for List or 2 for Manual:${RESET}${BOLD} " choice_small
+		
+		if [[ "$choice_small" = 1 ]]; then
+		read -r -e -p "${YELLOW}Enter the directory path to generate list:${RESET}${BOLD} " dir_path
+		list_iso_bin_img_files "$dir_path"
+		read -r -e -p "${YELLOW}Enter the path(s) from list above you wish to mount (separate with spaces), or press enter to quit:${RESET}${BOLD} " iso_paths
+		fi
+		if [[ "$choice_small" = 2 ]]; then
+		read -r -e -p "${YELLOW}Enter the paths of the ISO files (separate with spaces), or press enter to quit:${RESET}${BOLD} " iso_paths
+		fi
 		# Remove double quotes from the beginning and end of the string, if they exist
 		iso_paths="${iso_paths%\"}"
 		iso_paths="${iso_paths#\"}"
@@ -191,9 +199,7 @@ while true; do
 				echo -e "\e[1;31mThe specified ISO file '$iso_path' does not exist, no ISO mounted...\e[0m"
 			fi
 		done
-
 		pause
-
 		;;
 	2)
 		if [ $iso_count -eq 1 ]; then
@@ -216,7 +222,6 @@ while true; do
 			fi
 		fi
 		pause
-		clear
 		;;
 	3)
 		if [ $iso_count -eq 1 ]; then
@@ -229,11 +234,19 @@ while true; do
 			mounted_isos=()
 		fi
 		pause
-		clear
 		;;
-	4)
-		read -r -e -p "${YELLOW}Enter the paths to the image files you want to convert (separated by spaces):${RESET}${BOLD} " input_paths
-
+	4)	
+		read -r -e -p "${YELLOW}Press 1 for List or 2 Manual:${RESET}${BOLD} " choice_small
+		
+		if [[ "$choice_small" = 1 ]]; then
+		read -r -e -p "${YELLOW}Enter the directory path to generate list:${RESET}${BOLD} " dir_path
+		list_iso_bin_img_files "$dir_path" 
+		read -r -e -p "${YELLOW}Enter from the list above the path(s) for conversion (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths 
+		fi
+		if [[ "$choice_small" = 2 ]]; then
+		read -r -e -p "${YELLOW}Enter the image file(s) path(s) you want to convert (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths
+		fi
+		
 		# Remove double quotes from the beginning and end of the string, if they exist
 		input_paths="${input_paths%\"}"
 		input_paths="${input_paths#\"}"
@@ -243,24 +256,18 @@ while true; do
 
 		convert_to_iso "${input_paths[@]}"
 		read -r -p "Press Enter to return to the main menu..."
-		clear
 		;;
 	5)
 		nohup xdg-open /mnt/ >/dev/null 2>&1 &
 		read -r -p "Press Enter to return to the main menu..."
-		;;
-	6)
-		read -r -e -p "${YELLOW}Enter the directory path to generate list:${RESET}${BOLD} " dir_path
-		list_iso_bin_img_files "$dir_path"
 		;;
 	7)
 		echo "Exiting the program."
 		exit 0
 		;;
 	*)
-		echo -e "\e[1;31mInvalid choice. Please enter 1, 2, 3, 4, 5, 6 or 7.\e[0m"
+		echo -e "\e[1;31mInvalid choice. Please enter 1, 2, 3, 4, 5 or 6.\e[0m"
 		pause
-		clear
 		;;
 	esac
 done
