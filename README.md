@@ -1,4 +1,4 @@
-![2023-10-27-102009_grim](https://github.com/siyia2/mounter_elite/assets/46220960/b6f17616-8489-4694-9ec7-274a3664c40b)
+![2023-10-27-151048_grim](https://github.com/siyia2/mounter_elite/assets/46220960/088b21bc-e3c6-461d-9734-81ad37411026)
 
 
 
