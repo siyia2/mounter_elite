@@ -109,15 +109,15 @@ list_iso_bin_img_files() {
         read -p "Enter your choice (1/2): " list_option
 
         case $list_option in
-            1)  
+            1)
                 clear
-                echo "List of .iso files in '$dir_path' and its subdirectories:"
-                find "$dir_path" -type f -iname "*.iso"
+                echo "List of .iso files in '$dir_path' and its subdirectories (up to 3 levels deep):"
+                find "$dir_path" -maxdepth 3 -type f -iname "*.iso"
                 ;;
-            2)  
+            2)
                 clear
-                echo "List of .bin and .img files in '$dir_path' and its subdirectories:"
-                find "$dir_path" -type f \( -iname "*.bin" -o -iname "*.img" \)
+                echo "List of .bin and .img files in '$dir_path' and its subdirectories (up to 3 levels deep):"
+                find "$dir_path" -maxdepth 3 -type f \( -iname "*.bin" -o -iname "*.img" \) 
                 ;;
             *)
                 echo -e "\e[1;31mInvalid choice. Please enter 1 or 2.\e[0m"
@@ -187,6 +187,7 @@ while true; do
                 fi
             fi
             pause
+            clear
             ;;
         3)
             if [ $iso_count -eq 1 ]; then
@@ -205,10 +206,12 @@ while true; do
             read -e -p "Enter the paths to the image files you want to convert (separated by spaces): " -a input_paths
             convert_to_iso "${input_paths[@]}"
             read -p "Press Enter to return to the main menu..."
+            clear
             ;;            
         5)
             nohup xdg-open /mnt/ > /dev/null 2>&1&
             read -p "Press Enter to return to the main menu..."
+            clear
             ;;
         6)
             read -e -p "Enter the directory path to generate list: " dir_path
@@ -220,6 +223,7 @@ while true; do
             ;;
         *)
             echo -e "\e[1;31mInvalid choice. Please enter 1, 2, 3, 4, 5, or 6.\e[0m"
+            clear
             ;;
     esac
 done
