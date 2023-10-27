@@ -190,7 +190,7 @@ while true; do
 		echo -e "\e[1;34mOperating On List Mode\e[0m"
 		read -r -e -p "${YELLOW}Enter directory path for ISO list generation:${RESET}${BOLD} " dir_path
 		list_iso_bin_img_files "$dir_path"
-		read -r -e -p "${YELLOW}Enter path(s) from list above to mount (separate with spaces), or press enter to quit:${RESET}${BOLD} " iso_paths
+		read -r -e -p "${YELLOW}Enter path(s) of ISO files (separate with spaces), or press enter to quit:${RESET}${BOLD} " iso_paths
 		fi
 		if [[ "$choice_small" = 2 ]]; then
 		echo -e "\e[1;34mOperating On Manual Mode\e[0m"
@@ -253,11 +253,11 @@ while true; do
 		echo -e "\e[1;34mOperating On List Mode\e[0m"
 		read -r -e -p "${YELLOW}Enter directory path for BIN/IMG list generation:${RESET}${BOLD} " dir_path
 		list_iso_bin_img_files "$dir_path" 
-		read -r -e -p "${YELLOW}Enter from the list above path(s) for conversion (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths 
+		read -r -e -p "${YELLOW}Enter path(s) of IMG/BIN file(s)(separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths 
 		fi
 		if [[ "$choice_small" = 2 ]]; then
 		echo -e "\e[1;34mOperating On Manual Mode\e[0m"
-		read -r -e -p "${YELLOW}Enter image file(s) path(s) you want to convert (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths
+		read -r -e -p "${YELLOW}Enter path(s) of IMG/BIN file(s)(separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths
 		fi
 		
 		# Remove double quotes from the beginning and end of the string, if they exist
