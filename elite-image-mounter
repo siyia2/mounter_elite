@@ -109,30 +109,28 @@ convert_to_iso() {
 # Function to list either iso or bin and img files
 list_iso_bin_img_files() {
 	local dir_path="$1"
-	if [ -d "$dir_path" ]; then
-		echo "Choose an option to list files:"
-		echo -e "1. List \e[1;32m.iso\e[0m files"
-		echo -e "2. List \e[1;32m.bin\e[0m and \e[1;32m.img\e0m files (\e[1;31mexcluding files smaller than 10MB\e[0m)"
-		read -r -p "${YELLOW}Enter your choice (1/2):${RESET}${BOLD} " list_option
 
-		case $list_option in
+	if [ -d "$dir_path" ]; then
+
+		# Use the choice_small parameter to determine which option was selected
+		case $choice in
 		1)
-			iso_files=$(find "$dir_path" -maxdepth 4 -type f -iname "*.iso" -print0 | xargs -0 -r realpath | sed 's/ /\\ /g')
+			iso_files=$(find "$dir_path" -maxdepth 5 -type f -iname "*.iso" -print0 | xargs -0 -r realpath | sed 's/ /\\ /g')
 			if [ -z "$iso_files" ]; then
 				echo -e "\e[1;33mNo .iso files were found under the specified path."
 			else
-				echo "List of .iso files in '$dir_path' and its subdirectories (up to 4 levels deep) with absolute paths:"
+				echo "List of .iso files in '$dir_path' and its subdirectories (up to 5 levels deep) with absolute paths:"
 				echo -e "\e[1;32m"
 				echo -e "$iso_files"
 			fi
 			echo ""
 			;;
 		2)
-			bin_img_files=$(find "$dir_path" -maxdepth 4 -type f \( -iname "*.bin" -o -iname "*.img" \) -size +10M -print0 | xargs -0 -r realpath | sed 's/ /\\ /g')
+			bin_img_files=$(find "$dir_path" -maxdepth 5 -type f \( -iname "*.bin" -o -iname "*.img" \) -size +10M -print0 | xargs -0 -r realpath | sed 's/ /\\ /g')
 			if [ -z "$bin_img_files" ]; then
 				echo -e "\e[1;33mNo .bin or .img files (larger than 10MB) were found under the specified path."
 			else
-				echo "List of .bin and .img files (excluding files larger than 10MB) in '$dir_path' and its subdirectories (up to 4 levels deep) with absolute paths:"
+				echo "List of .bin and .img files (excluding files larger than 10MB) in '$dir_path' and its subdirectories (up to 5 levels deep) with absolute paths:"
 				echo -e "\e[1;32m"
 				echo "$bin_img_files"
 			fi
@@ -175,15 +173,17 @@ while true; do
 
 	case $choice in
 	1)	
-		read -r -e -p "${YELLOW}Press 1 for List or 2 for Manual:${RESET}${BOLD} " choice_small
+		read -r -e -p "${YELLOW}Press 1 for List Mode or 2 for Manual Mode:${RESET}${BOLD} " choice_small
 		
 		if [[ "$choice_small" = 1 ]]; then
-		read -r -e -p "${YELLOW}Enter the directory path to generate list:${RESET}${BOLD} " dir_path
+		echo -e "\e[1;34mOperating On List Mode\e[0m"
+		read -r -e -p "${YELLOW}Enter directory path for ISO list generation:${RESET}${BOLD} " dir_path
 		list_iso_bin_img_files "$dir_path"
-		read -r -e -p "${YELLOW}Enter the path(s) from list above you wish to mount (separate with spaces), or press enter to quit:${RESET}${BOLD} " iso_paths
+		read -r -e -p "${YELLOW}Enter path(s) from list above to mount (separate with spaces), or press enter to quit:${RESET}${BOLD} " iso_paths
 		fi
 		if [[ "$choice_small" = 2 ]]; then
-		read -r -e -p "${YELLOW}Enter the paths of the ISO files (separate with spaces), or press enter to quit:${RESET}${BOLD} " iso_paths
+		echo -e "\e[1;34mOperating On Manual Mode\e[0m"
+		read -r -e -p "${YELLOW}Enter path(s) of ISO files (separate with spaces), or press enter to quit:${RESET}${BOLD} " iso_paths
 		fi
 		# Remove double quotes from the beginning and end of the string, if they exist
 		iso_paths="${iso_paths%\"}"
@@ -236,15 +236,17 @@ while true; do
 		pause
 		;;
 	4)	
-		read -r -e -p "${YELLOW}Press 1 for List or 2 Manual:${RESET}${BOLD} " choice_small
+		read -r -e -p "${YELLOW}Press 1 for List Mode or 2 for Manual Mode:${RESET}${BOLD} " choice_small
 		
 		if [[ "$choice_small" = 1 ]]; then
-		read -r -e -p "${YELLOW}Enter the directory path to generate list:${RESET}${BOLD} " dir_path
+		echo -e "\e[1;34mOperating On List Mode\e[0m"
+		read -r -e -p "${YELLOW}Enter directory path for BIN/IMG list generation:${RESET}${BOLD} " dir_path
 		list_iso_bin_img_files "$dir_path" 
-		read -r -e -p "${YELLOW}Enter from the list above the path(s) for conversion (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths 
+		read -r -e -p "${YELLOW}Enter from the list above path(s) for conversion (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths 
 		fi
 		if [[ "$choice_small" = 2 ]]; then
-		read -r -e -p "${YELLOW}Enter the image file(s) path(s) you want to convert (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths
+		echo -e "\e[1;34mOperating On Manual Mode\e[0m"
+		read -r -e -p "${YELLOW}Enter image file(s) path(s) you want to convert (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths
 		fi
 		
 		# Remove double quotes from the beginning and end of the string, if they exist
