@@ -231,7 +231,6 @@ while true; do
 	5)
 		nohup xdg-open /mnt/ >/dev/null 2>&1 &
 		read -r -p "Press Enter to return to the main menu..."
-		clear
 		;;
 	6)
 		read -r -e -p "Enter the directory path to generate list: " dir_path
@@ -239,10 +238,13 @@ while true; do
 		;;
 	7)
 		echo "Exiting the program."
+		clear
 		exit 0
 		;;
 	*)
 		echo -e "\e[1;31mInvalid choice. Please enter 1, 2, 3, 4, 5, 6 or 7.\e[0m"
+		pause
+		clear
 		;;
 	esac
 done
