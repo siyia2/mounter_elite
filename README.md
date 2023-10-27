@@ -1,4 +1,5 @@
-![2023-10-26-204132_grim](https://github.com/siyia2/mounter_elite/assets/46220960/0ec531f1-f580-4979-988e-219806415696)
+![2023-10-27-102009_grim](https://github.com/siyia2/mounter_elite/assets/46220960/b6f17616-8489-4694-9ec7-274a3664c40b)
+
 
 
 ## ELITE IMAGE MOUNTER
@@ -6,7 +7,9 @@
 Simple asf bash script, that allows you to mount `ISOs` and/or to `convert` `BIN/IMG` files to `ISO`. Path prompt supports `Tab Completion`, just point it to the correct path and shoot enter.
 You can add multiple mount or conversion paths, all valid paths are mounted under `/mnt/` and `all conversions take place in their respective source directories`.
 
-In addition i have included options to unmount the mounted `ISO` or `ISOs` and a choice for opening the `/mnt/` directory directly from the script.
+I have also included options to unmount the mounted `ISO` or `ISOs` and a choice for opening the `/mnt/` directory directly from the script.
+
+In addition i added an option generate image list of any user prompted path, which can help you in mounting or converting the images en masse with the help of the clipboard
 
 For the conversions, `ccd2iso` is used, i tested it with some `valid IMG and BIN` files through my script and it works.
 
