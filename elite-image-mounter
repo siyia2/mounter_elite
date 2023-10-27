@@ -140,7 +140,7 @@ pause() {
 
 # Array to store the list of mounted ISOs
 mounted_isos=()
-
+clear
 while true; do
 
 	echo -e "\e[1;32m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
@@ -231,6 +231,7 @@ while true; do
 	5)
 		nohup xdg-open /mnt/ >/dev/null 2>&1 &
 		read -r -p "Press Enter to return to the main menu..."
+		clear
 		;;
 	6)
 		read -r -e -p "Enter the directory path to generate list: " dir_path
