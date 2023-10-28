@@ -1,6 +1,6 @@
 # Maintainer: Siyia <eutychios23@gmail.com>
 pkgname=elite-image-mounter
-pkgver=1.4.0
+pkgver=1.5.0
 pkgrel=1
 pkgdesc='A minimalist bash based, ISO mounter and converter'
 arch=('x86_64')
