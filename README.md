@@ -1,6 +1,5 @@
-![2023-10-27-185239_grim](https://github.com/siyia2/mounter_elite/assets/46220960/2a62faf6-bab2-4f26-be66-f980af8ab6d4)
 
-
+![2023-10-28-231633_grim](https://github.com/siyia2/mounter_elite/assets/46220960/9dee5e5c-cc48-4432-98f0-c4dd56704fbf)
 
 
 ## ELITE IMAGE MOUNTER
