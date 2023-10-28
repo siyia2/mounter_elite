@@ -123,34 +123,9 @@ unmount_all_isos_parallel() {
 	echo "All mounted ISOs have been unmounted in parallel."
 }
 
-# Function to convert image files to ISO
-convert_to_iso() {
-	local input_paths=("$@")
-	for input_path in "${input_paths[@]}"; do
-		if [ -e "$input_path" ]; then
-			if [[ "$input_path" == *.iso ]]; then
-				echo -e "\e[1;33mThe file '$input_path' is already in ISO format.\e[0m"
-			else
-				if command -v ccd2iso &>/dev/null; then
-					local output_path="${input_path%.*}.iso"
-					ccd2iso "$input_path" "$output_path"
-					if [ -e "$output_path" ]; then
-						echo -e "\e[1;32mImage file converted to ISO: $output_path\e[0m"
-					else
-						echo -e "\e[1;31mConversion of '$input_path' failed.\e[0m"
-					fi
-				else
-					echo -e "\e[1;33mccd2iso is not installed. Please install it before using this option.\e[0m"
-				fi
-			fi
-		else
-			echo -e "\e[1;31mThe specified input file '$input_path' does not exist.\e[0m"
-		fi
-	done
-}
 
 # Function to list either iso or bin and img files with numbers
-list_iso_bin_img_files() {
+list_iso_files() {
     local dir_path="$1"
 
     if [ -d "$dir_path" ]; then
@@ -162,28 +137,23 @@ list_iso_bin_img_files() {
                 # Use find with null character delimiter to handle spaces in file paths
                 IFS=$'\n' read -d '' -r -a iso_files < <(find "$dir_path" -maxdepth 5 -type f -iname "*.iso" -print0 | xargs -0 -r -P "$(nproc)" realpath)
                 ;;
-            2)
-                bin_img_files=()
-                IFS=$'\n' read -d '' -r -a bin_img_files < <(find "$dir_path" -maxdepth 5 -type f \( -iname "*.bin" -o -iname "*.img" \) -size +10M -print0 | xargs -0 -r -P "$(nproc)" realpath)
-                ;;
+            
             *)
                 echo -e "\e[1;31mInvalid choice.\e[0m"
                 return
                 ;;
             esac
 
-            if [ -z "${iso_files[@]}" ]; then
+            if [ -z "${iso_files[@]}" ] 2>/dev/null; then
                 echo -e "\e[1;33mNo .iso files were found under the specified path."
             else
                 echo "List of files in '$dir_path' and its subdirectories (up to 5 levels deep) with numbers:"
+                echo " "
                 for ((i = 0; i < ${#iso_files[@]}; i++)); do
                     echo "$((i + 1)): ${iso_files[i]}"
                 done
                 echo -e "\e[1;32m"
             fi
-            ;;
-        4)
-            # ... (similar changes for listing bin/img files)
             ;;
         *)
             echo -e "\e[1;31mInvalid choice.\e[0m"
@@ -191,7 +161,6 @@ list_iso_bin_img_files() {
         esac
     fi
 }
-
 
 select_and_mount_files_by_number() {
     local list=("$@")
@@ -231,7 +200,115 @@ select_and_mount_files_by_number() {
     done
 }
 
+list_img_and_bin_files() {
+    local dir_path="$1"
 
+    if [ -d "$dir_path" ]; then
+        case $choice in
+        4)
+            img_bin_files=()
+            case $choice_small in
+            1)
+                # Use find with null character delimiter to handle spaces in file paths
+                IFS=$'\n' read -d '' -r -a img_bin_files < <(find "$dir_path" -maxdepth 5 -type f \( -iname "*.img" -o -iname "*.bin" \) -size +50000c -print0 | xargs -0 -r -P "$(nproc)" realpath)
+                ;;
+            
+            *)
+                echo -e "\e[1;31mInvalid choice.\e[0m"
+                return
+                ;;
+            esac
+
+            if [ -z "${img_bin_files[@]}" ] 2>/dev/null; then
+                echo -e "\e[1;33mNo .img or .bin files over 10MB were found under the specified path."
+                for ((i = 0; i < ${#img_bin_files[@]}; i++)); do
+                    echo "$((i + 1)): ${img_bin_files[i]}"
+                done
+                echo -e "\e[1;32m"
+            fi
+            ;;
+        *)
+            echo -e "\e[1;31mInvalid choice.\e[0m"
+            ;;
+        esac
+    fi
+}
+
+select_and_convert_files_by_number() {
+    local dir_path="$1"
+
+    # List .img and .bin files that meet specific criteria
+    list_img_and_bin_files "$dir_path"
+
+    if [ -z "${img_bin_files[@]}" ] 2>/dev/null; then
+        echo -e "\e[1;33mNo .img or .bin files over 50MB were found.\e[0m"
+        return
+    fi
+
+    # Prompt the user to select files by number
+    
+    while true; do
+    echo "List of .img and .bin files over 50MB in '/mnt/D' and its subdirectories (up to 5 levels deep), select files for conversion (e.g., 1 2 3), or 'q' to quit:"
+    echo " "
+    for ((i = 0; i < ${#img_bin_files[@]}; i++)); do
+                    echo "$((i + 1)): ${img_bin_files[i]}"
+                done
+
+    # Reset the selection each time the loop iterates.
+    selected=()
+    echo " "
+    read -p "Enter your selections (e.g. 1 } or 1 2 3 }), : " input
+
+    # Split the user's input into an array of selections, separated by spaces.
+    IFS=" " read -ra user_selections <<< "$input"
+
+    for selection in "${user_selections[@]}"; do
+        if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -le "${#img_bin_files[@]}" ]; then
+            selected+=("${img_bin_files[$selection - 1]}")
+            echo "Selected: ${img_bin_files[$selection - 1]}"
+        elif [ "$selection" == "}" ]; then
+            break 2
+        else
+            echo "Invalid selection. Enter the numbers of the files to select, separated by spaces, or 'q' to quit."
+        fi
+    done
+    
+    done
+
+    if [ ${#selected[@]} -eq 0 ]; then
+        echo -e "\e[1;33mNo files were selected for conversion.\e[0m"
+        return
+    fi
+
+    # Call convert_to_iso to convert the selected files to ISO format
+    convert_to_iso "${selected[@]}"
+}
+
+# Function to convert image files to ISO
+convert_to_iso() {
+	local input_paths=("$@")
+	for input_path in "${input_paths[@]}"; do
+		if [ -e "$input_path" ]; then
+			if [[ "$input_path" == *.iso ]]; then
+				echo -e "\e[1;33mThe file '$input_path' is already in ISO format.\e[0m"
+			else
+				if command -v ccd2iso &>/dev/null; then
+					local output_path="${input_path%.*}.iso"
+					ccd2iso "$input_path" "$output_path"
+					if [ -e "$output_path" ]; then
+						echo -e "\e[1;32mImage file converted to ISO: $output_path\e[0m"
+					else
+						echo -e "\e[1;31mConversion of '$input_path' failed.\e[0m"
+					fi
+				else
+					echo -e "\e[1;33mccd2iso is not installed. Please install it before using this option.\e[0m"
+				fi
+			fi
+		else
+			echo -e "\e[1;31mThe specified input file '$input_path' does not exist.\e[0m"
+		fi
+	done
+}
 
 # Function to pause and wait for a key press
 pause() {
@@ -266,7 +343,7 @@ while true; do
     if [[ "$choice_small" == 1 ]]; then
         echo -e "\e[1;34mOperating On List Mode\e[0m"
         read -r -e -p "${YELLOW}Enter directory path for ISO list generation:${RESET}${BOLD} " dir_path
-        list_iso_bin_img_files "$dir_path"
+        list_iso_files "$dir_path"
         selected_files=($(select_and_mount_files_by_number "${iso_files[@]}"))
     fi
     if [[ "$choice_small" == 2 ]]; then
@@ -304,27 +381,41 @@ while true; do
 		;;
 	4)	
 		read -r -e -p "${YELLOW}Press 1 for List Mode or 2 for Manual Mode:${RESET}${BOLD} " choice_small
-		
-		if [[ "$choice_small" = 1 ]]; then
-		echo -e "\e[1;34mOperating On List Mode\e[0m"
-		read -r -e -p "${YELLOW}Enter directory path for BIN/IMG list generation:${RESET}${BOLD} " dir_path
-		list_iso_bin_img_files "$dir_path" 
-		read -r -e -p "${YELLOW}Enter from the list above path(s) for conversion (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths 
-		fi
-		if [[ "$choice_small" = 2 ]]; then
-		echo -e "\e[1;34mOperating On Manual Mode\e[0m"
-		read -r -e -p "${YELLOW}Enter image file(s) path(s) you want to convert (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths
-		fi
-		
-		# Remove double quotes from the beginning and end of the string, if they exist
-		input_paths="${input_paths%\"}"
-		input_paths="${input_paths#\"}"
 
-		# Split the input string into an array based on spaces
-		IFS=" " read -a input_paths <<<"$input_paths"
+if [[ "$choice_small" = 1 ]]; then
+    echo -e "\e[1;34mOperating On List Mode\e[0m"
+    read -r -e -p "${YELLOW}Enter directory path for BIN/IMG list generation:${RESET}${BOLD} " dir_path
+    # Prompt the user to select files in List Mode
+        select_and_convert_files_by_number "$dir_path"
 
-		convert_to_iso "${input_paths[@]}"
-		read -r -p "Press Enter to return to the main menu..."
+    if [ -z "${img_bin_files[@]}" ] 2>/dev/null; then
+        echo -e "\e[1;33mNo .img or .bin files over 50MB were found.\e[0m"
+        
+
+        # Assuming the selected files are stored in the selected array, you can now proceed with the conversion.
+        convert_to_iso "${selected[@]}"
+    fi
+elif [[ "$choice_small" = 2 ]]; then
+    echo -e "\e[1;34mOperating On Manual Mode\e[0m"
+    read -r -e -p "${YELLOW}Enter image file(s) path(s) you want to convert (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths
+
+    # Remove double quotes from the beginning and end of the string, if they exist
+    input_paths="${input_paths%\"}"
+    input_paths="${input_paths#\"}"
+
+    # Split the input string into an array based on spaces
+    IFS=" " read -a input_paths <<< "$input_paths"
+
+    # Perform the conversion for Manual Mode
+    convert_to_iso "${input_paths[@]}"
+else
+    echo -e "\e[1;33mInvalid choice. Please enter 1 or 2.\e[0m"
+fi
+
+read -r -p "Press Enter to return to the main menu..."
+
+
+
 		;;
 	5)
 		nohup xdg-open /mnt/ >/dev/null 2>&1 &
