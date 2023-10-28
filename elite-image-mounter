@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mounted_isos=()
+
 # Read propmt color and style
 YELLOW=$(tput setaf 3)
 RESET=$(tput sgr0)
@@ -15,80 +17,105 @@ mount_iso() {
     local iso_files=("$@")
     
     for iso_file in "${iso_files[@]}"; do
-        local mount_point="/mnt/iso_$iso_count"
-        
-        if [ -e "$mount_point" ]; then
-            echo "An ISO is already mounted at '$mount_point'."
-        else
-            sudo mkdir -p "$mount_point"
-            
-            (
-                # Subshell for parallel execution
-                sudo mount -o loop "$iso_file" "$mount_point"
-                echo "ISO file '$iso_file' mounted at '$mount_point'."
-                mounted_isos+=("$mount_point") # Add the mount point to the list
-                ((iso_count++))
-            ) &  # Run the subshell in the background
-        fi
+        while [ -e "/mnt/iso_$iso_count" ]; do
+    ((iso_count++))  # Increment iso_count until an available number is found
+done
+
+local mount_point
+for ((i = 1; ; i++)); do
+    mount_point="/mnt/iso_$i"
+    if [ ! -e "$mount_point" ]; then
+        break
+    fi
+done
+
+if [ -e "$mount_point" ]; then
+    echo "An ISO is already mounted at '$mount_point'."
+else
+    sudo mkdir -p "$mount_point"
+    
+    (
+        # Subshell for parallel execution
+        sudo mount -o loop "$iso_file" "$mount_point"
+        echo "ISO file '$iso_file' mounted at '$mount_point'."
+        mounted_isos+=("$mount_point") # Add the mount point to the list
+    ) &  # Run the subshell in the background
+fi
+
+
     done
     
     # Wait for all background jobs to complete
     wait
     
     echo "All ISO files have been mounted."
+    mounted_isos+=("$mount_point")
 }
 
-# Function to unmount a specific ISO or multiple ISOs
-unmount_iso() {
-	local unmount_selection="$1"
+# Function to unmount a specific ISO or multiple ISOs in parallel
+unmount_iso_parallel() {
+    local unmount_selection="$1"
 
-	if [[ "$unmount_selection" =~ ^[0-9]+(-[0-9]+)?$ ]]; then
-		IFS='-' read -r -a iso_numbers <<<"$unmount_selection"
-		for num in "${iso_numbers[@]}"; do
-			if [ "$num" -ge 1 ] && [ "$num" -le $iso_count ]; then
-				local mount_point="/mnt/iso_$num"
-				if [ -e "$mount_point" ]; then
-					sudo umount "$mount_point"
-					sudo rmdir "$mount_point"
-					echo "ISO $num unmounted."
-					# Remove the unmounted ISO from the list
-					mounted_isos=("${mounted_isos[@]/$mount_point/}")
-					iso_count=$((iso_count - 1)) # Decrement iso_count
-				else
-					echo "No ISO mounted at '$mount_point'."
-				fi
-			else
-				echo "Invalid ISO number '$num'. No action performed."
-			fi
-		done
-	else
-		local mount_point="/mnt/iso_$unmount_selection"
-		if [ -e "$mount_point" ]; then
-			sudo umount "$mount_point"
-			sudo rmdir "$mount_point"
-			echo "ISO $unmount_selection unmounted."
-			# Remove the unmounted ISO from the list
-			mounted_isos=("${mounted_isos[@]/$mount_point/}")
-			iso_count=$((iso_count - 1)) # Decrement iso_count
-		else
-			echo "No ISO mounted at '$mount_point'."
-		fi
-	fi
+    if [[ "$unmount_selection" =~ ^[0-9]+(-[0-9]+)?$ ]]; then
+        IFS='-' read -r -a range <<< "$unmount_selection"
+        start="${range[0]}"
+        end="${range[1]:-$start}"  # If no second number is provided, use the first one
+
+        if [ "$start" -ge 1 ] && [ "$end" -le $iso_count ] && [ "$start" -le "$end" ]; then
+            for num in $(seq "$start" "$end"); do
+                local mount_point="/mnt/iso_$num"
+                if [ -e "$mount_point" ]; then
+                    (
+                        sudo umount "$mount_point"
+                        sudo rmdir "$mount_point"
+                        # Remove the unmounted ISO from the list
+                        mounted_isos=("${mounted_isos[@]/$mount_point/}")
+                        echo "ISO $num unmounted."
+                    ) &  # Run the unmounting process in the background
+                else
+                    echo "No ISO mounted at '$mount_point'."
+                fi
+            done
+            iso_count=$((iso_count - end + start + 1))
+        else
+            echo "Invalid ISO range. No action performed."
+        fi
+    else
+        local mount_point="/mnt/iso_$unmount_selection"
+        if [ -e "$mount_point" ]; then
+            (
+                sudo umount "$mount_point"
+                sudo rmdir "$mount_point"
+                # Parse the ISO number from the mount point path
+                local num
+                num="${mount_point#/mnt/iso_}"
+                echo "ISO $num unmounted."
+                # Remove the unmounted ISO from the list
+                mounted_isos=("${mounted_isos[@]/$mount_point/}")
+                iso_count=$((iso_count - 1))
+            ) &  # Run the unmounting process in the background
+        else
+            echo "No ISO mounted at '$mount_point'."
+        fi
+    fi
 }
 
-# Function to unmount all ISOs
-unmount_all_isos() {
+# Function to unmount all ISOs in parallel
+unmount_all_isos_parallel() {
 	for ((i = 1; i < iso_count; i++)); do
 		local mount_point="/mnt/iso_$i"
 		if [ -e "$mount_point" ]; then
-			sudo umount "$mount_point"
-			sudo rmdir "$mount_point"
-			# Remove the unmounted ISO from the list
-			mounted_isos=("${mounted_isos[@]/$mount_point/}")
+			(
+				sudo umount "$mount_point"
+				sudo rmdir "$mount_point"
+			) &  # Run the unmounting process in the background
 		fi
 	done
 
-	echo "All mounted ISOs have been unmounted."
+	# Wait for all background unmounting processes to complete
+	wait
+
+	echo "All mounted ISOs have been unmounted in parallel."
 }
 
 # Function to convert image files to ISO
@@ -159,8 +186,9 @@ list_iso_bin_img_files() {
 
 # Function to pause and wait for a key press
 pause() {
-	read -n 1 -s -r -p "Press any key to continue..."
-	echo ""
+	read -r -e -p "Press any key to continue...
+"
+	echo " "
 }
 
 # Array to store the list of mounted ISOs
@@ -190,7 +218,7 @@ while true; do
 		echo -e "\e[1;34mOperating On List Mode\e[0m"
 		read -r -e -p "${YELLOW}Enter directory path for ISO list generation:${RESET}${BOLD} " dir_path
 		list_iso_bin_img_files "$dir_path"
-		read -r -e -p "${YELLOW}Enter path(s) of ISO files (separate with spaces), or press enter to quit:${RESET}${BOLD} " iso_paths
+		read -r -e -p "${YELLOW}Enter path(s) from list above to mount (separate with spaces), or press enter to quit:${RESET}${BOLD} " iso_paths
 		fi
 		if [[ "$choice_small" = 2 ]]; then
 		echo -e "\e[1;34mOperating On Manual Mode\e[0m"
@@ -213,34 +241,34 @@ while true; do
 		pause
 		;;
 	2)
-		if [ $iso_count -eq 1 ]; then
-			echo -e "\e[1;31mNo ISOs are mounted.\e[0m"
-		else
-			if [ "${#mounted_isos[@]}" -gt 0 ]; then
-				echo "List of mounted ISOs:"
-				for ((i = 0; i < "${#mounted_isos[@]}"; i++)); do
-					echo "ISO $((i + 1)): ${mounted_isos[i]}"
-				done
-			else
-				echo -e "\e[1;31mNo ISOs are mounted.\e[0m"
-			fi
+        if [ $iso_count -eq 1 ]; then
+            echo -e "\e[1;31mNo ISOs are mounted.\e[0m"
+        else
+            if [ "${#mounted_isos[@]}" -gt 0 ]; then
+                echo "List of mounted ISOs:"
+                for ((i = 0; i < "${#mounted_isos[@]}"; i++)); do
+                    echo "ISO $((i + 1)): ${mounted_isos[i]}"
+                done
+            else
+                echo -e "\e[1;31mNo ISOs are mounted.\e[0m"
+            fi
 
-			read -r -p "${YELLOW}Enter the number(s) of the ISO(s) to unmount (e.g., '1' or '1-2') or 'exit' to go back:${RESET}${BOLD} " unmount_selection
-			if [ "$unmount_selection" == "exit" ]; then
-				continue
-			else
-				unmount_iso "$unmount_selection"
-			fi
-		fi
-		pause
-		;;
+            read -r -p "${YELLOW}Enter the number(s) of the ISO(s) to unmount (e.g., '1' or '1-2') or 'exit' to go back:${RESET}${BOLD} " unmount_selection
+            if [ "$unmount_selection" == "exit" ]; then
+                continue
+            else
+                unmount_iso_parallel "$unmount_selection"  # Call the parallelized function
+            fi
+        fi
+        pause
+        ;;
 	3)
 		if [ $iso_count -eq 1 ]; then
 			echo -e "\e[1;33mNo ISOs are mounted, but cleaning mount dirs just in case...\e[0m"
 			sudo umount /mnt/iso_*
 			sudo rm -r /mnt/iso_*
 		else
-			unmount_all_isos
+			unmount_all_isos_parallel
 			iso_count=1
 			mounted_isos=()
 		fi
@@ -253,11 +281,11 @@ while true; do
 		echo -e "\e[1;34mOperating On List Mode\e[0m"
 		read -r -e -p "${YELLOW}Enter directory path for BIN/IMG list generation:${RESET}${BOLD} " dir_path
 		list_iso_bin_img_files "$dir_path" 
-		read -r -e -p "${YELLOW}Enter path(s) of IMG/BIN file(s)(separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths 
+		read -r -e -p "${YELLOW}Enter from the list above path(s) for conversion (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths 
 		fi
 		if [[ "$choice_small" = 2 ]]; then
 		echo -e "\e[1;34mOperating On Manual Mode\e[0m"
-		read -r -e -p "${YELLOW}Enter path(s) of IMG/BIN file(s)(separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths
+		read -r -e -p "${YELLOW}Enter image file(s) path(s) you want to convert (separate with spaces), or press enter to quit:${RESET}${BOLD} " input_paths
 		fi
 		
 		# Remove double quotes from the beginning and end of the string, if they exist
