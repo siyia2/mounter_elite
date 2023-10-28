@@ -12,6 +12,8 @@ I have also included options to unmount the mounted `ISO(s)` and a choice for op
 
 Since `v1.2` and up, i have implemented a `search based list` for options `1&4` to locate and display the `ISO BIN IMG` files, it `significantly speeds up the processing of images en masse, with a little help from the clipboard.`
 
+Since `v1.4` everything is parallelized to improve performance.
+
 For the conversions, `ccd2iso` is used, i tested it with some `valid IMG and BIN` files through my script and it works.
 
 The AUR executable is installed in `/usr/bin/mounter_elite`.
