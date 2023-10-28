@@ -163,7 +163,7 @@ list_iso_bin_img_files() {
 			fi
 			echo ""
 			;;
-		2)
+		4)
 			bin_img_files=$(find "$dir_path" -maxdepth 5 -type f \( -iname "*.bin" -o -iname "*.img" \) -size +10M -print0 | xargs -0 -r -P "$(nproc)" realpath | sed 's/ /\\ /g')
 			if [ -z "$bin_img_files" ]; then
 				echo -e "\e[1;33mNo .bin or .img files (larger than 10MB) were found under the specified path."
@@ -175,11 +175,9 @@ list_iso_bin_img_files() {
 			echo ""
 			;;
 		*)
-			echo -e "\e[1;31mInvalid choice. Please enter 1 or 2.\e[0m"
+			echo -e "\e[1;31mInvalid choice.\e[0m"
 			;;
 		esac
-	else
-		echo -e "\e[1;31m'$dir_path' is not a valid directory.\e[0m"
 	fi
 }
 
