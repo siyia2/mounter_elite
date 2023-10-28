@@ -250,7 +250,7 @@ select_and_convert_files_by_number() {
 	# List .img and .bin files that meet specific criteria
 	list_img_and_bin_files "$dir_path"
 
-	if [ -z "${img_bin_files[*]}" ] 2>/dev/null; then
+	if [ -z "${img_bin_files[*]}" ]; then
 		echo -e "\e[1;31mNo .img or .bin files over 50MB were found.\e[0m"
 		return
 	fi
