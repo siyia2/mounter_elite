@@ -10,9 +10,6 @@ You can add multiple mount or conversion paths, all paths are mounted under `/mn
 
 I have also included options to unmount the mounted `ISO(s)` and a choice for opening the `/mnt/` directory directly from the script.
 
-If you mount `ISO(s)` and quit the script without unmounting them, the next time you run the script they won't be recognized as mounted while occupying a mounted folder e.g `/mnt/iso_1`, 
-This causes errors when trying to mount a new ISO, this is resolved by simply running once option `3. Unmount all ISOs`, after then proceed as you normally would.
-
 Since `v1.2` and up, i have implemented a `search based list` for options `1&4` to locate and display the `ISO BIN IMG` files, it `significantly speeds up the processing of images en masse, with a little help from the clipboard.`
 
 For the conversions, `ccd2iso` is used, i tested it with some `valid IMG and BIN` files through my script and it works.
