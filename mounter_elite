@@ -55,7 +55,7 @@ unmount_iso_parallel_parallel() {
 	local iso_folders=()
 
 	# List the mounted ISO folders in the "/mnt" directory with a limited search depth
-	iso_folders=($(find /mnt -maxdepth 1 -type d -name "iso_*"))
+	mapfile -t iso_folders < <(find /mnt -maxdepth 1 -type d -name "iso_*")
 
 	if [ ${#iso_folders[@]} -gt 0 ]; then
 		found_mounted=true
@@ -107,7 +107,7 @@ unmount_iso_parallel_parallel() {
 }
 # Function to unmount all ISOs in parallel
 unmount_all_isos_parallel() {
-	local iso_folders=($(find /mnt -maxdepth 1 -type d -name "iso_*"))
+	mapfile -t iso_folders < <(find /mnt -maxdepth 1 -type d -name "iso_*")
 
 	local should_print_message=true
 
@@ -186,16 +186,16 @@ select_and_mount_files_by_number() {
 		return
 	else
 		while true; do
-			read -e -p "${YELLOW}${BOLD}Enter the number(s) of the file(s) to select&mount e.g. ( 1 } or 1 3 5 } or '}' to return):${RESET} " input
+			read -r -e -p "${YELLOW}${BOLD}Enter the number(s) of the file(s) to select&mount e.g. ( 1 } or 1 3 5 } or '}' to return):${RESET} " input
 
 		# Split input by spaces
-		read -a num_array <<<"$input"
+		read -r -a num_array <<<"$input"
 
 		for num in "${num_array[@]}"; do
 			if [ "$num" = "}" ]; then
 				break 2 # Exit both inner and outer loops
 			elif [[ "$num" =~ ^[0-9]+$ && "$num" -ge 1 && "$num" -le ${#list[@]} ]]; then
-				if ! [[ " ${selected_numbers[*]} " =~ " $num " ]]; then
+				if ! [[ " ${selected_numbers[*]} " =~ $num ]]; then
 					selected_numbers+=("$num")
 					selected+=("${list[num - 1]}")
 				else
@@ -245,7 +245,7 @@ select_and_convert_files_to_iso_multithreaded() {
 	    echo "$((i + 1)): ${img_bin_files[i]}"
     done
     while true; do
-	    read -p "${YELLOW}${BOLD}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
+	    read -r -p "${YELLOW}${BOLD}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
 
 	# Split the user's input into an array of selections, separated by spaces.
 	IFS=" " read -ra user_selections <<<"$input"
@@ -303,7 +303,7 @@ convert_to_iso() {
 
     # Display all results
     for result in "${results[@]}"; do
-	    echo -e "\e[1;32m$result \e[0m"
+	    echo -e "${BOLD}$result"
     done
 }
 
@@ -348,7 +348,7 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 								echo -e "\e[1;34mOperating in List Mode\e[0m"
 								# Call your list_iso_files_multithreaded function here
 								list_iso_files_multithreaded "$dir_path"
-								selected_files=($(select_and_mount_files_by_number "${iso_files[@]}"))
+								mapfile -t selected_files < <(select_and_mount_files_by_number "${iso_files[@]}")
 								;;
 							2)
 								echo -e "\e[1;34mOperating in Manual Mode\e[0m"
@@ -365,7 +365,7 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 										break
 									fi
 
-									IFS=" " read -a selected_files <<<"$iso_paths"
+									IFS=" " read -r -a selected_files <<<"$iso_paths"
 
 									invalid_paths=()
 									for iso_path in "${selected_files[@]}"; do
@@ -431,7 +431,7 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 									# Call your select_and_convert_files_to_iso_multithreaded function here
 									select_and_convert_files_to_iso_multithreaded "$dir_path"
 								else
-									echo -e "\e[1;31mError: Invalid Path: $dir_path.\e[0m"
+									echo -e "\e[1;31mError: Invalid Path: $dir_path\e[0m"
 								fi
 							done
 						elif [[ "$choice_small" == 2 ]]; then
@@ -443,7 +443,7 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 		input_paths="${input_paths#\"}"
 
 		# Split the input string into an array based on spaces
-		IFS=" " read -a input_paths <<<"$input_paths"
+		IFS=" " read -r -a input_paths <<<"$input_paths"
 
 		# Perform the conversion for Manual Mode
 		convert_to_iso "${input_paths[@]}"
