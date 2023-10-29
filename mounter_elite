@@ -362,10 +362,10 @@ while true; do
                                                                                                                                        \e[0m'
 	
     read -r -e -p "Select an option:
-1) List and Mount ISOs
-2) Unmount ISOs
-3) Clean and Unmount All ISOs
-4) Convert BIN/IMG to ISO
+1) List and Mount ISO(s)
+2) Unmount ISO(s)
+3) Clean and Unmount All ISO(s)
+4) List and Convert BIN(s)/IMG(s) to ISO(s)
 5) Open /mnt directory
 6) Exit
 ${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
