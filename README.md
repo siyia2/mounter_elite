@@ -1,5 +1,5 @@
 
-![2023-10-29-112704_grim](https://github.com/siyia2/mounter_elite/assets/46220960/3dc45b26-7d66-4a72-8010-2016ce774372)
+![2023-10-29-180425_grim](https://github.com/siyia2/mounter_elite/assets/46220960/ed6bff18-21da-4c69-b177-d88227da2a33)
 
 
 
