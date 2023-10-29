@@ -356,7 +356,7 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 								invalid_paths_str=""
 
 								while true; do
-									read -r -e -p "${YELLOW}${BOLD}Enter path(s) of ISO files (separate by spaces), or '}' to return:${RESET} " iso_paths
+									read -r -e -p "${YELLOW}${BOLD}Enter path(s) of ISO files (separate by space), or '}' to return:${RESET} " iso_paths
 									iso_paths="${iso_paths%\"}"
 									iso_paths="${iso_paths#\"}"
 
