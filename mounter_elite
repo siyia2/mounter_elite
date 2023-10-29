@@ -89,7 +89,7 @@ unmount_iso_parallel_parallel() {
 				sudo umount -l "$selected_folder"
 				echo "ISO $((i + 1)) unmounted."
 				# Remove the ISO folder after unmounting
-				sudo rmdir -p "$selected_folder" 2>NUL
+				sudo rmdir -p "$selected_folder" 2> /dev/null
 				echo "Folder $((i + 1)) removed."
 				) & # Run the unmounting process in the background
 			done
@@ -107,25 +107,25 @@ unmount_iso_parallel_parallel() {
 }
 # Function to unmount all ISOs in parallel
 unmount_all_isos_parallel() {
-    local iso_folders=($(find /mnt -maxdepth 1 -type d -name "iso_*"))
+	local iso_folders=($(find /mnt -maxdepth 1 -type d -name "iso_*"))
 
-    local should_print_message=true
+	local should_print_message=true
 
-    for mount_point in "${iso_folders[@]}"; do
-        (
-        sudo umount -l "$mount_point"
-        sudo rmdir "$mount_point"
-        ) &
-        should_print_message=false
-    done
+	for mount_point in "${iso_folders[@]}"; do
+		(
+		sudo umount -l "$mount_point"
+		sudo rmdir "$mount_point"
+		) &
+		should_print_message=false
+	done
 
-    wait
+	wait
 
-    if [ "$should_print_message" = true ]; then
-        echo -e "\e[1;31mNo ISO folders found in /mnt\e[0m"
-    else
-        echo -e "\e[1;32mAll mounted ISOs have been unmounted in parallel.\e[0m"
-    fi
+	if [ "$should_print_message" = true ]; then
+		echo -e "\e[1;31mNo ISO folders found in /mnt\e[0m"
+	else
+		echo -e "\e[1;32mAll mounted ISOs have been unmounted in parallel.\e[0m"
+	fi
 }
 
 # Function to list either iso or bin and img files with numbers
@@ -133,7 +133,7 @@ list_iso_files_multithreaded() {
 
 	while true; do
 		# Prompt the user for a directory path
-		read -r -e -p "${BOLD}${YELLOW}Enter a valid directory path or '}' to quit${RESET}: " dir_path
+		read -r -e -p "${BOLD}${YELLOW}Enter a valid directory path or '}' to return${RESET}: " dir_path
 		if [[ "$dir_path" == '}' ]]; then
 			echo "Exiting List Mode..."
 			return
@@ -186,7 +186,7 @@ select_and_mount_files_by_number() {
 		return
 	else
 		while true; do
-			read -e -p "${YELLOW}${BOLD}Enter the number(s) of the file(s) to select&mount e.g. ( 1 } or 1 3 5 } or '}' to quit):${RESET} " input
+			read -e -p "${YELLOW}${BOLD}Enter the number(s) of the file(s) to select&mount e.g. ( 1 } or 1 3 5 } or '}' to return):${RESET} " input
 
 		# Split input by spaces
 		read -a num_array <<<"$input"
@@ -277,7 +277,7 @@ select_and_convert_files_by_number() {
 		# Reset the selection each time the loop iterates.
 		selected=()
 		echo " "
-		read -p "${YELLOW}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to quit):${RESET}${BOLD} " input
+		read -p "${YELLOW}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
 
 		# Split the user's input into an array of selections, separated by spaces.
 		IFS=" " read -ra user_selections <<<"$input"
@@ -289,7 +289,7 @@ select_and_convert_files_by_number() {
 			elif [ "$selection" == "}" ]; then
 				break 2
 			else
-				echo -e "\e[1;31mInvalid selection. Enter the numbers of the files to select&convert, e.g. (1 } or 1 2 }, or '}' to quit.\e[0m"
+				echo -e "\e[1;31mInvalid selection. Enter the numbers of the files to select&convert, e.g. (1 } or 1 2 }, or '}' to return.\e[0m"
 			fi
 		done
 
@@ -355,26 +355,26 @@ while true; do
 
 	clear
 
-	echo -e '\e[1;32m _____          ___ _____ _____   ___ __   __  ___  _____ _____   __   __  ___ __   __ _   _ _____ _____ ____          _   ____   ___  
+echo -e '\e[1;32m _____          ___ _____ _____   ___ __   __  ___  _____ _____   __   __  ___ __   __ _   _ _____ _____ ____          _   ____   ___  
 |  ___)   /\   (   |_   _)  ___) (   )  \ /  |/ _ \|  ___)  ___) |  \ /  |/ _ (_ \ / _) \ | (_   _)  ___)  _ \        / | |  __) / _ \ 
 | |_     /  \   | |  | | | |_     | ||   v   | |_| | |   | |_    |   v   | | | |\ v / |  \| | | | | |_  | |_) )  _  __- | | |__ | | | |
 |  _)   / /\ \  | |  | | |  _)    | || |\_/| |  _  | |   |  _)   | |\_/| | | | | | |  |     | | | |  _) |  __/  | |/ /| | |___ \| | | |
 | |___ / /  \ \ | |  | | | |___   | || |   | | | | | |   | |___  | |   | | |_| | | |  | |\  | | | | |___| |     | / / | |_ ___) ) |_| |
 |_____)_/    \_(___) |_| |_____) (___)_|   |_|_| |_|_|   |_____) |_|   |_|\___/  |_|  |_| \_| |_| |_____)_|     |__/  |_(_|____/ \___/ 
                                                                                                                                        \e[0m'
+	
 echo "Select an option:
-1) List and Mount ISO(s)
-2) Unmount ISO(s)
-3) Clean and Unmount All ISO(s)
-4) List and Convert BIN(s)/IMG(s) to ISO(s)
+1) List and Mount ISOs
+2) Unmount ISOs
+3) Clean and Unmount All ISOs
+4) Convert BIN/IMG to ISO
 5) Open /mnt directory
 6) Exit"
 read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
-
 			case $choice in
 				1)
 					while true; do
-						read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to quit:${RESET} " choice_small
+						read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to return:${RESET} " choice_small
 
 						case "$choice_small" in
 							1)
@@ -389,7 +389,7 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 								invalid_paths_str=""
 
 								while true; do
-									read -r -e -p "${YELLOW}${BOLD}Enter path(s) of ISO files (separate by spaces), or '}' to quit:${RESET} " iso_paths
+									read -r -e -p "${YELLOW}${BOLD}Enter path(s) of ISO files (separate by spaces), or '}' to return:${RESET} " iso_paths
 									iso_paths="${iso_paths%\"}"
 									iso_paths="${iso_paths#\"}"
 
@@ -440,13 +440,13 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 					pause
 					;;
 				3)
-						# Call your unmount_all_isos_parallel function here
-						unmount_all_isos_parallel
+					# Call your unmount_all_isos_parallel function here
+					unmount_all_isos_parallel
 					pause
 					;;
 				4)
 					while true; do
-						read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to quit:${RESET} " choice_small
+						read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to return:${RESET} " choice_small
 
 						if [[ "$choice_small" == '}' ]]; then
 							echo "Exiting..."
@@ -455,7 +455,7 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 							echo -e "\e[1;34mOperating On List Mode\e[0m"
 
 							while true; do
-								read -r -e -p "${YELLOW}${BOLD}Enter directory path for BIN/IMG list generation, or '}' to quit:${RESET} " dir_path
+								read -r -e -p "${YELLOW}${BOLD}Enter directory path for BIN/IMG list generation, or '}' to return:${RESET} " dir_path
 
 								if [[ "$dir_path" == '}' ]]; then
 									echo "Exiting List Mode..."
@@ -469,7 +469,7 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 							done
 						elif [[ "$choice_small" == 2 ]]; then
 							echo -e "\e[1;34mOperating On Manual Mode\e[0m"
-							read -r -e -p "${YELLOW}${BOLD}Enter image file(s) path(s) to convert (separate with spaces), or press '}' to quit:${RESET} " input_paths
+							read -r -e -p "${YELLOW}${BOLD}Enter image file(s) path(s) to convert (separate by space), or press '}' to return:${RESET} " input_paths
 
 		# Remove double quotes from the beginning and end of the string, if they exist
 		input_paths="${input_paths%\"}"
@@ -494,10 +494,9 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 
 				5)
 					nohup xdg-open /mnt/ >/dev/null 2>&1 &
-					read -r -p "Press Enter to return to the main menu..."
 					;;
 				6)
-					echo "Exiting the program."
+					echo "Exiting the program..."
 					exit 0
 					;;
 				*)
