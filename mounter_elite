@@ -333,7 +333,7 @@ convert_to_iso() {
 
     # Display all results
     for result in "${results[@]}"; do
-        echo "$result"
+        echo -e "\e[1;32m$result \e[0m"
     done
 }
 
