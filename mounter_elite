@@ -218,87 +218,54 @@ select_and_mount_files_by_number() {
 	fi
 }
 
-list_img_and_bin_files_multithreaded() {
+select_and_convert_files_to_iso_multithreaded() {
 	local dir_path="$1"
 
-	# Check if the provided path is a valid directory
-	if [ ! -d "$dir_path" ]; then
-		echo -e "\e[1;31mError: Invalid Path: $dir_path\e[0m"
-		return
-	fi
+    # Check if the directory exists and is accessible
+    if [ ! -d "$dir_path" ] || [ ! -r "$dir_path" ]; then
+	    echo -e "\e[1;31mError: The specified directory does not exist or is not accessible.\e[0m"
+	    return
+    fi
 
-	case $choice in
-		4)
-			img_bin_files=()
-			case $choice_small in
-				1)
-					# Use find with null character delimiter to handle spaces in file paths
-					IFS=$'\n' read -d '' -r -a img_bin_files < <(find "$dir_path" -maxdepth 5 -type f \( -iname "*.img" -o -iname "*.bin" \) -size +50000c -print0 | xargs -0 -r -P "$(nproc)" realpath)
-					;;
+    # List .img and .bin files that meet specific criteria
+    img_bin_files=()
+    # Use find with null character delimiter to handle spaces in file paths
+    IFS=$'\n' read -d '' -r -a img_bin_files < <(find "$dir_path" -maxdepth 5 -type f \( -iname "*.img" -o -iname "*.bin" \) -size +50000c -print0 | xargs -0 -r -P "$(nproc)" realpath)
 
-				*)
-					echo -e "\e[1;31mInvalid choice.\e[0m"
-					return
-					;;
-			esac
+    if [ -z "${img_bin_files[*]}" ]; then
+	    echo -e "\e[1;31mNo .img or .bin files over 50MB were found.\e[0m"
+	    return
+    fi
 
-			;;
-		*)
-			echo -e "\e[1;31mInvalid choice.\e[0m"
-			;;
-	esac
-}
+    # Prompt the user to select files by number
 
-select_and_convert_files_by_number() {
-	local dir_path="$1"
+    echo "List of .img and .bin files over 50MB in '/mnt/D' and its subdirectories (up to 5 levels deep):"
+    echo " "
+    for ((i = 0; i < ${#img_bin_files[@]}; i++)); do
+	    echo "$((i + 1)): ${img_bin_files[i]}"
+    done
+    while true; do
+	    read -p "${YELLOW}${BOLD}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
 
-	# Check if the directory exists and is accessible
-	if [ ! -d "$dir_path" ] || [ ! -r "$dir_path" ]; then
-		echo -e "\e[1;31mError: The specified directory does not exist or is not accessible.\e[0m"
-		return
-	fi
+	# Split the user's input into an array of selections, separated by spaces.
+	IFS=" " read -ra user_selections <<<"$input"
 
-	# List .img and .bin files that meet specific criteria
-	list_img_and_bin_files_multithreaded "$dir_path"
-
-	if [ -z "${img_bin_files[*]}" ]; then
-		echo -e "\e[1;31mNo .img or .bin files over 50MB were found.\e[0m"
-		return
-	fi
-	# Prompt the user to select files by number
-
-	while true; do
-		echo "List of .img and .bin files over 50MB in '/mnt/D' and its subdirectories (up to 5 levels deep):"
-		echo " "
-		for ((i = 0; i < ${#img_bin_files[@]}; i++)); do
-			echo "$((i + 1)): ${img_bin_files[i]}"
-		done
-
-		# Reset the selection each time the loop iterates.
-		selected=()
-		echo " "
-		read -p "${YELLOW}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
-
-		# Split the user's input into an array of selections, separated by spaces.
-		IFS=" " read -ra user_selections <<<"$input"
-
-		for selection in "${user_selections[@]}"; do
-			if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -le "${#img_bin_files[@]}" ]; then
-				selected+=("${img_bin_files[$selection - 1]}")
-				echo -e "\e[1;32mSelected: ${img_bin_files[$selection - 1]}\e[0m"
-			elif [ "$selection" == "}" ]; then
-				break 2
-			else
-				echo -e "\e[1;31mInvalid selection. Enter the numbers of the files to select&convert, e.g. (1 } or 1 2 }, or '}' to return.\e[0m"
-			fi
-		done
-
+	for selection in "${user_selections[@]}"; do
+		if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -le "${#img_bin_files[@]}" ]; then
+			selected+=("${img_bin_files[$selection - 1]}")
+			echo -e "\e[1;32mSelected: ${img_bin_files[$selection - 1]}\e[0m"
+		elif [ "$selection" == "}" ]; then
+			break 2
+		else
+			echo -e "\e[1;31mInvalid selection. Enter the numbers of the files to select & convert, e.g. (1 } or 1 2 }, or '}' to return.\e[0m"
+		fi
 	done
+done
 
-	if [ ${#selected[@]} -eq 0 ]; then
-		echo -e "\e[1;31mNo files were selected for conversion.\e[0m"
-		return
-	fi
+if [ ${#selected[@]} -eq 0 ]; then
+	echo -e "\e[1;31mNo files were selected for conversion.\e[0m"
+	return
+fi
 
 	# Call convert_to_iso to convert the selected files to ISO format
 	convert_to_iso "${selected[@]}"
@@ -461,8 +428,8 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 									echo "Exiting List Mode..."
 									break
 								elif [[ -d "$dir_path" ]]; then
-									# Call your select_and_convert_files_by_number function here
-									select_and_convert_files_by_number "$dir_path"
+									# Call your select_and_convert_files_to_iso_multithreaded function here
+									select_and_convert_files_to_iso_multithreaded "$dir_path"
 								else
 									echo -e "\e[1;31mError: Invalid Path: $dir_path.\e[0m"
 								fi
