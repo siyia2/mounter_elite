@@ -11,6 +11,7 @@ iso_count=1
 iso_paths=()
 
 # Function to mount an ISO file in parallel
+# Function to mount an ISO file in parallel
 mount_iso_parallel() {
     local iso_files=("$@")
     declare -A mounted_isos=()
@@ -19,18 +20,19 @@ mount_iso_parallel() {
         if [ -n "${mounted_isos[$iso_file]}" ]; then
             echo "ISO file '$iso_file' is already mounted at '${mounted_isos[$iso_file]}'."
         else
-            while [ -e "/mnt/iso_$iso_count" ]; do
-                ((iso_count++))
-            done
+            local mount_point="/mnt/iso_${iso_file##*/}"
 
-            local mount_point="/mnt/iso_$iso_count"
-
-            sudo mkdir -p "$mount_point"
-            (
-                sudo mount -o loop "$iso_file" "$mount_point"
-                echo "ISO file '$iso_file' mounted at '$mount_point'."
+            if [ ! -d "$mount_point" ]; then
+                sudo mkdir -p "$mount_point"
+                (
+                    sudo mount -o loop "$iso_file" "$mount_point"
+                    echo "ISO file '$iso_file' mounted at '$mount_point'."
+                    mounted_isos["$iso_file"]=$mount_point
+                ) &
+            else
+                echo "ISO file '$iso_file' is already mounted at '$mount_point'."
                 mounted_isos["$iso_file"]=$mount_point
-            ) &
+            fi
         fi
     done
 
@@ -154,7 +156,7 @@ list_iso_files_multithreaded() {
 			if [ -z "${iso_files[*]}" ]; then
 				echo -e "\e[1;33mNo .iso files were found under the specified path."
 			else
-				echo "List of files in '$dir_path' and its subdirectories (up to 5 levels deep) with numbers:"
+				echo -e "List of files in '$dir_path' and its subdirectories (up to 5 levels deep) with numbers, \e[1;32mno logs on choice means ISO(s) is/are already mouted:\e[0m"
 				echo " "
 				for ((i = 0; i < ${#iso_files[@]}; i++)); do
 					echo "$((i + 1)): ${iso_files[i]}"
@@ -404,7 +406,7 @@ function manual_mode_imgs() {
 	}
 	# Function to pause and wait for a key press
 	pause() {
-
+		echo " "
 		read -r -e -p "Press any key to continue..."
 		echo " "
 	}
@@ -428,7 +430,7 @@ echo "Select an option:
 2) Unmount ISOs
 3) Clean and Unmount All ISOs
 4) Convert BIN/IMG to ISO
-5) Open /mnt directory
+5) List Mounted ISO(s)
 6) Exit"
 read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 			case $choice in
@@ -493,7 +495,12 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 					;;
 
 				5)
-					nohup xdg-open /mnt/ >/dev/null 2>&1 &
+					
+					echo "Mounted ISO(s):"
+					echo ""
+					find /mnt -maxdepth 1 -type d -name "iso*" -exec sh -c 'echo -e "\033[1;34m{}\033[0m"' \;
+
+					#nohup xdg-open /mnt/ >/dev/null 2>&1 &
 					;;
 				6)
 					echo "Exiting the program..."
