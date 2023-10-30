@@ -132,6 +132,7 @@ unmount_all_isos_parallel() {
 list_iso_files_multithreaded() {
 
 	while true; do
+		echo -e "\e[1;34mOperating in List Mode\e[0m"
 		# Prompt the user for a directory path
 		read -r -e -p "${BOLD}${YELLOW}Enter a valid directory path or '}' to return${RESET}: " dir_path
 		if [[ "$dir_path" == '}' ]]; then
@@ -174,7 +175,8 @@ list_iso_files_multithreaded() {
 			echo -e "\e[1;31mInvalid choice.\e[0m"
 			;;
 	esac
-
+# Choose which ISO files to mount from list
+mapfile -t selected_files < <(select_and_mount_files_by_number "${iso_files[@]}")
 }
 
 select_and_mount_files_by_number() {
@@ -216,6 +218,7 @@ select_and_mount_files_by_number() {
 		fi
 	done
 	fi
+
 }
 
 select_and_convert_files_to_iso_multithreaded() {
@@ -411,12 +414,12 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 
 						case "$choice_small" in
 							1)
-								echo -e "\e[1;34mOperating in List Mode\e[0m"
+								
 								# Call your list_iso_files_multithreaded function here
 								list_iso_files_multithreaded "$dir_path"
-								mapfile -t selected_files < <(select_and_mount_files_by_number "${iso_files[@]}")
 								;;
-							2)
+							2)	
+								# Call your manual_mode_isos function here
 								manual_mode_isos
 								;;
 							'}')
