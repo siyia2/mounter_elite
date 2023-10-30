@@ -16,6 +16,6 @@ Since `v1.4` everything is parallelized to improve performance.
 
 Since `v1.5` there is full list intergration inside options `1&4`, no need to copy paste or use the clipboard, just enter numbers from the generated list.
 
-For the conversions, `ccd2iso` is used, i tested it with some `valid IMG and BIN` files through my script and it works. If there already exist the `ISOs` of the corresponding `IMGs and BINs` files that you convert,they will be overwitten. If `ccd2iso` cannot convert the images or the images are corrupt, i can't do anything about it.
+For the conversions, `ccd2iso` is used, i tested it with some `valid IMG and BIN` files through my script and it works. If `ccd2iso` cannot convert the images or the images are corrupt, i can't do anything about it.
 
 The AUR executable is installed under `/usr/bin/mounter_elite`.
