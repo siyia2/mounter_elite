@@ -344,53 +344,48 @@ function manual_mode_imgs() {
 
 
 	function manual_mode_isos() {
-		echo -e "\e[1;34mOperating in Manual Mode\e[0m"
-		valid_paths=()
-		invalid_paths_str=""
-		mounting_complete=false
+    echo -e "\e[1;34mOperating in Manual Mode\e[0m"
+    valid_paths=()
+    invalid_paths_str=""
+    mounting_complete=false
 
-		while true; do
-			read -r -e -p "${YELLOW}${BOLD}Enter path(s) of ISO files (separate by space), or '}' to return:${RESET} " iso_paths
-			iso_paths="${iso_paths%\"}"
-			iso_paths="${iso_paths#\"}"
+    while true; do
+        IFS= read -r -e -p "${YELLOW}${BOLD}Enter path(s) of ISO files (separate by space), or '}' to return:${RESET} " -a iso_paths
 
-			if [[ "$iso_paths" == '}' ]]; then
-				if $mounting_complete; then
-					echo "Exiting Manual Mode..."
-					break
-				else
-					echo -e "\e[1;31mExiting Manual Mode...No ISOs for mounting were selected\e[0m"
-					break
-					continue
-				fi
-			fi
+        if [ "${iso_paths[@]}" == "}" ]; then
+            if $mounting_complete; then
+                echo "Exiting Manual Mode..."
+                break
+            else
+                echo -e "\e[1;31mExiting Manual Mode...No ISOs for mounting were selected\e[0m"
+                break
+            fi
+        fi
 
-			IFS=" " read -r -a selected_files <<<"$iso_paths"
+        invalid_paths=()
+        for iso_path in "${iso_paths[@]}"; do
+            if [ -e "$iso_path" ] && [ -f "$iso_path" ]; then
+                valid_paths+=("$iso_path")
+            else
+                invalid_paths+=("$iso_path")
+            fi
+        done
 
-			invalid_paths=()
-			for iso_path in "${selected_files[@]}"; do
-				if [ -e "$iso_path" ] && [ -f "$iso_path" ]; then
-					valid_paths+=("$iso_path")
-				else
-					invalid_paths+=("$iso_path")
-				fi
-			done
-
-			if [ ${#invalid_paths[@]} -gt 0 ]; then
-				invalid_paths_str=$(IFS=" "; echo "${invalid_paths[*]}")
-				echo "Invalid Path(s): $invalid_paths_str"
-			else
-				for iso_path in "${valid_paths[@]}"; do
-					if [ -e "$iso_path" ]; then
-						# Call your mount_iso_parallel function here
-						mount_iso_parallel "$iso_path"
-						mounting_complete=true
-					fi
-				done
-				valid_paths=()  # Clear valid_paths for the next iteration
-			fi
-		done
-	}
+        if [ ${#invalid_paths[@]} -gt 0 ]; then
+            invalid_paths_str=$(IFS=" "; echo "${invalid_paths[*]}")
+            echo "Invalid Path(s): $invalid_paths_str"
+        else
+            for iso_path in "${valid_paths[@]}"; do
+                if [ -e "$iso_path" ]; then
+                    # Call your mount_iso_parallel function here
+                    mount_iso_parallel "$iso_path"
+                    mounting_complete=true
+                fi
+            done
+            valid_paths=()  # Clear valid_paths for the next iteration
+        fi
+    done
+}
 	# Function to pause and wait for a key press
 	pause() {
 		echo " "
@@ -405,13 +400,13 @@ while true; do
 
 clear
 
-echo -e "\e[1;32m _____          ___ _____ _____   ___ __   __  ___  _____ _____   __   __  ___ __   __ _   _ _____ _____ ____          _    __   ___  
-|  ___)   /\   (   |_   _)  ___) (   )  \ /  |/ _ \|  ___)  ___) |  \ /  |/ _ (_ \ / _) \ | (_   _)  ___)  _ \        / |  / /  / _ \ 
-| |_     /  \   | |  | | | |_     | ||   v   | |_| | |   | |_    |   v   | | | |\ v / |  \| | | | | |_  | |_) )  _  __- | / /_ | | | |
-|  _)   / /\ \  | |  | | |  _)    | || |\_/| |  _  | |   |  _)   | |\_/| | | | | | |  |     | | | |  _) |  __/  | |/ /| || '_ \| | | |
-| |___ / /  \ \ | |  | | | |___   | || |   | | | | | |   | |___  | |   | | |_| | | |  | |\  | | | | |___| |     | / / | || (_) ) |_| |
-|_____)_/    \_(___) |_| |_____) (___)_|   |_|_| |_|_|   |_____) |_|   |_|\___/  |_|  |_| \_| |_| |_____)_|     |__/  |_(_)___/ \___/ 
-                                                                                                                                       \e[0m"
+echo -e '\e[1;32m _____          ___ _____ _____   ___ __   __  ___  _____ _____   __   __  ___ __   __ _   _ _____ _____ ____          _   _____ ___  
+|  ___)   /\   (   |_   _)  ___) (   )  \ /  |/ _ \|  ___)  ___) |  \ /  |/ _ (_ \ / _) \ | (_   _)  ___)  _ \        / | (___  ) _ \ 
+| |_     /  \   | |  | | | |_     | ||   v   | |_| | |   | |_    |   v   | | | |\ v / |  \| | | | | |_  | |_) )  _  __- |   _/ / | | |
+|  _)   / /\ \  | |  | | |  _)    | || |\_/| |  _  | |   |  _)   | |\_/| | | | | | |  |     | | | |  _) |  __/  | |/ /| |  (  _) | | |
+| |___ / /  \ \ | |  | | | |___   | || |   | | | | | |   | |___  | |   | | |_| | | |  | |\  | | | | |___| |     | / / | |_ / / | |_| |
+|_____)_/    \_(___) |_| |_____) (___)_|   |_|_| |_|_|   |_____) |_|   |_|\___/  |_|  |_| \_| |_| |_____)_|     |__/  |_(_)_/   \___/ 
+                                                                                                                                      \e[0m'
 echo "Select an option:
 1) List and Mount ISOs
 2) Unmount ISOs
