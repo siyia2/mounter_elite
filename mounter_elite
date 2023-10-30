@@ -220,6 +220,7 @@ select_and_mount_files_by_number() {
 
 select_and_convert_files_to_iso_multithreaded() {
 	local dir_path="$1"
+	local selected=()  # Initialize an empty array for selected files
 
     # Check if the directory exists and is accessible
     if [ ! -d "$dir_path" ] || [ ! -r "$dir_path" ]; then
@@ -237,39 +238,37 @@ select_and_convert_files_to_iso_multithreaded() {
 	    return
     fi
 
-    # Prompt the user to select files by number
-
-    echo "List of .img and .bin files over 50MB in '/mnt/D' and its subdirectories (up to 5 levels deep):"
-    echo " "
-    for ((i = 0; i < ${#img_bin_files[@]}; i++)); do
-	    echo "$((i + 1)): ${img_bin_files[i]}"
-    done
     while true; do
-	    read -r -p "${YELLOW}${BOLD}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
+	    # Display the list of files
+	    echo "List of .img and .bin files over 50MB in '$dir_path' and its subdirectories (up to 5 levels deep):"
+	    for ((i = 0; i < ${#img_bin_files[@]}; i++)); do
+		    echo "$((i + 1)): ${img_bin_files[i]}"
+	    done
 
-	# Split the user's input into an array of selections, separated by spaces.
-	IFS=" " read -ra user_selections <<<"$input"
+	    read -r -p "${YELLOW}${BOLD}Enter your selections for ISO conversions (1 or 1 2 3 or '}' to return):${RESET}${BOLD} " input
 
-	for selection in "${user_selections[@]}"; do
-		if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -le "${#img_bin_files[@]}" ]; then
-			selected+=("${img_bin_files[$selection - 1]}")
-			echo -e "\e[1;32mSelected: ${img_bin_files[$selection - 1]}\e[0m"
-		elif [ "$selection" == "}" ]; then
-			break 2
-		else
-			echo -e "\e[1;31mInvalid selection. Enter the numbers of the files to select & convert, e.g. (1 } or 1 2 }, or '}' to return.\e[0m"
-		fi
-	done
-done
+	    IFS=" " read -ra user_selections <<< "$input"
 
-if [ ${#selected[@]} -eq 0 ]; then
-	echo -e "\e[1;31mNo files were selected for conversion.\e[0m"
-	return
-fi
-
-	# Call convert_to_iso to convert the selected files to ISO format
-	convert_to_iso "${selected[@]}"
+	    for selection in "${user_selections[@]}"; do
+		    if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -le "${#img_bin_files[@]}" ]; then
+			    selected+=("${img_bin_files[$selection - 1]}")
+			    echo -e "\e[1;32mSelected: ${img_bin_files[$selection - 1]}\e[0m"
+		    elif [ "$selection" == "}" ]; then
+			    if [ ${#selected[@]} -eq 0 ]; then
+				    echo -e "\e[1;31mNo files were selected for conversion.\e[0m"
+				    return
+			    fi
+			    # Call convert_to_iso to convert the selected files to ISO format
+			    convert_to_iso "${selected[@]}"
+			    return
+		    else
+			    echo -e "\e[1;31mInvalid selection. Enter the numbers of the files to select & convert, e.g. (1 } or 1 2 }, or '}' to return.\e[0m"
+		    fi
+	    done
+    done
 }
+
+
 
 # Function to convert image files to ISO
 convert_to_iso() {
@@ -307,13 +306,81 @@ convert_to_iso() {
     done
 }
 
+function manual_mode_imgs() {
+	echo -e "\e[1;34mOperating On Manual Mode\e[0m"
+	read -r -e -p "${YELLOW}${BOLD}Enter image file(s) path(s) to convert (separate by space), or press '}' to return:${RESET} " input_paths
 
-# Function to pause and wait for a key press
-pause() {
+	if [ "$input_paths" == "}" ]; then
+		echo -e "\e[1;31mExiting Manual Mode...No IMGs for conversion were selected"
+		return
+	fi
 
-	read -r -e -p "Press any key to continue..."
-	echo " "
-}
+    # Remove double quotes from the beginning and end of the string, if they exist
+    input_paths="${input_paths%\"}"
+    input_paths="${input_paths#\"}"
+
+		# Split the input string into an array based on spaces
+		IFS=" " read -a input_paths <<<"$input_paths"
+
+		# Perform the conversion for Manual Mode
+		convert_to_iso "${input_paths[@]}"
+	}
+
+
+	function manual_mode_isos() {
+		echo -e "\e[1;34mOperating in Manual Mode\e[0m"
+		valid_paths=()
+		invalid_paths_str=""
+		mounting_complete=false
+
+		while true; do
+			read -r -e -p "${YELLOW}${BOLD}Enter path(s) of ISO files (separate by space), or '}' to return:${RESET} " iso_paths
+			iso_paths="${iso_paths%\"}"
+			iso_paths="${iso_paths#\"}"
+
+			if [[ "$iso_paths" == '}' ]]; then
+				if $mounting_complete; then
+					echo "Exiting Manual Mode..."
+					break
+				else
+					echo -e "\e[1;31mExiting Manual Mode...No ISOs for mounting were selected\e[0m"
+					break
+					continue
+				fi
+			fi
+
+			IFS=" " read -r -a selected_files <<<"$iso_paths"
+
+			invalid_paths=()
+			for iso_path in "${selected_files[@]}"; do
+				if [ -e "$iso_path" ] && [ -f "$iso_path" ]; then
+					valid_paths+=("$iso_path")
+				else
+					invalid_paths+=("$iso_path")
+				fi
+			done
+
+			if [ ${#invalid_paths[@]} -gt 0 ]; then
+				invalid_paths_str=$(IFS=" "; echo "${invalid_paths[*]}")
+				echo "Invalid Path(s): $invalid_paths_str"
+			else
+				for iso_path in "${valid_paths[@]}"; do
+					if [ -e "$iso_path" ]; then
+						# Call your mount_iso_parallel function here
+						mount_iso_parallel "$iso_path"
+						mounting_complete=true
+					fi
+				done
+				valid_paths=()  # Clear valid_paths for the next iteration
+			fi
+		done
+	}
+	# Function to pause and wait for a key press
+	pause() {
+
+		read -r -e -p "Press any key to continue..."
+		echo " "
+	}
 
 # Array to store the list of mounted ISOs
 mounted_isos=()
@@ -322,14 +389,14 @@ while true; do
 
 	clear
 
-echo -e '\e[1;32m _____          ___ _____ _____   ___ __   __  ___  _____ _____   __   __  ___ __   __ _   _ _____ _____ ____          _   ____   ___  
-|  ___)   /\   (   |_   _)  ___) (   )  \ /  |/ _ \|  ___)  ___) |  \ /  |/ _ (_ \ / _) \ | (_   _)  ___)  _ \        / | |  __) / _ \ 
-| |_     /  \   | |  | | | |_     | ||   v   | |_| | |   | |_    |   v   | | | |\ v / |  \| | | | | |_  | |_) )  _  __- | | |__ | | | |
-|  _)   / /\ \  | |  | | |  _)    | || |\_/| |  _  | |   |  _)   | |\_/| | | | | | |  |     | | | |  _) |  __/  | |/ /| | |___ \| | | |
-| |___ / /  \ \ | |  | | | |___   | || |   | | | | | |   | |___  | |   | | |_| | | |  | |\  | | | | |___| |     | / / | |_ ___) ) |_| |
-|_____)_/    \_(___) |_| |_____) (___)_|   |_|_| |_|_|   |_____) |_|   |_|\___/  |_|  |_| \_| |_| |_____)_|     |__/  |_(_|____/ \___/ 
-                                                                                                                                       \e[0m'
-	
+echo -e "\e[1;32m _____          ___ _____ _____   ___ __   __  ___  _____ _____   __   __  ___ __   __ _   _ _____ _____ ____         _    __   ___  
+|  ___)   /\   (   (_   _|  ___) (   |  \ /  |/ _ \|  ___|  ___) |  \ /  |/ _ (_ \ / _| \ | (_   _|  ___|  _ \       / |  / /  / _ \ 
+| |_     /  \   | |  | | | |_     | ||   v   | |_| | |   | |_    |   v   | | | |\ v / |  \| | | | | |_  | |_) )  _  _- | / /_ | | | |
+|  _)   / /\ \  | |  | | |  _)    | || |\_/| |  _  | |   |  _)   | |\_/| | | | | | |  |     | | | |  _) |  __/  | |/ | || '_ \| | | |
+| |___ / /  \ \ | |  | | | |___   | || |   | | | | | |   | |___  | |   | | |_| | | |  | |\  | | | | |___| |     | / /| || (_) | |_| |
+|_____/_/    \_(___) |_| |_____) (___|_|   |_|_| |_|_|   |_____) |_|   |_|\___/  |_|  |_| \_| |_| |_____|_|     |__/ |_(_\___/ \___/ 
+                                                                                                                                      \e[0m"
+
 echo "Select an option:
 1) List and Mount ISOs
 2) Unmount ISOs
@@ -351,45 +418,7 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 								mapfile -t selected_files < <(select_and_mount_files_by_number "${iso_files[@]}")
 								;;
 							2)
-								echo -e "\e[1;34mOperating in Manual Mode\e[0m"
-								valid_paths=()
-								invalid_paths_str=""
-
-								while true; do
-									read -r -e -p "${YELLOW}${BOLD}Enter path(s) of ISO files (separate by space), or '}' to return:${RESET} " iso_paths
-									iso_paths="${iso_paths%\"}"
-									iso_paths="${iso_paths#\"}"
-
-									if [[ "$iso_paths" == '}' ]]; then
-										echo "Exiting Manual Mode..."
-										break
-									fi
-
-									IFS=" " read -r -a selected_files <<<"$iso_paths"
-
-									invalid_paths=()
-									for iso_path in "${selected_files[@]}"; do
-										if [ -e "$iso_path" ] && [ -f "$iso_path" ]; then
-											valid_paths+=("$iso_path")
-										else
-											invalid_paths+=("$iso_path")
-										fi
-									done
-
-									if [ ${#invalid_paths[@]} -gt 0 ]; then
-										invalid_paths_str=$(IFS=" "; echo "${invalid_paths[*]}")
-										echo "Invalid Path(s): $invalid_paths_str"
-									else
-										break
-									fi
-								done
-
-								for iso_path in "${valid_paths[@]}"; do
-									if [ -e "$iso_path" ]; then
-										# Call your mount_iso_parallel function here
-										mount_iso_parallel "$iso_path"
-									fi
-								done
+								manual_mode_isos
 								;;
 							'}')
 								echo "Exiting..."
@@ -413,13 +442,13 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 					;;
 				4)
 					while true; do
-						read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to return:${RESET} " choice_small
+						read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to return:${RESET} " choice
 
-						if [[ "$choice_small" == '}' ]]; then
+						if [[ "$choice" == '}' ]]; then
 							echo "Exiting..."
 							break
-						elif [[ "$choice_small" == 1 ]]; then
-							echo -e "\e[1;34mOperating On List Mode\e[0m"
+						elif [[ "$choice" == 1 ]]; then
+							echo -e "\e[1;34mOperating In List Mode\e[0m"
 
 							while true; do
 								read -r -e -p "${YELLOW}${BOLD}Enter directory path for BIN/IMG list generation, or '}' to return:${RESET} " dir_path
@@ -430,32 +459,18 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 								elif [[ -d "$dir_path" ]]; then
 									# Call your select_and_convert_files_to_iso_multithreaded function here
 									select_and_convert_files_to_iso_multithreaded "$dir_path"
-								else
-									echo -e "\e[1;31mError: Invalid Path: $dir_path\e[0m"
+
+			# Optionally, provide an option to return to the main menu
+			read -r -p "Press Enter to return to the main menu..."
+		else
+			echo -e "\e[1;31mError: Invalid Path: $dir_path\e[0m"
 								fi
 							done
-						elif [[ "$choice_small" == 2 ]]; then
-							echo -e "\e[1;34mOperating On Manual Mode\e[0m"
-							read -r -e -p "${YELLOW}${BOLD}Enter image file(s) path(s) to convert (separate by space), or press '}' to return:${RESET} " input_paths
-
-		# Remove double quotes from the beginning and end of the string, if they exist
-		input_paths="${input_paths%\"}"
-		input_paths="${input_paths#\"}"
-
-		# Split the input string into an array based on spaces
-		IFS=" " read -r -a input_paths <<<"$input_paths"
-
-		# Perform the conversion for Manual Mode
-		convert_to_iso "${input_paths[@]}"
-	elif [[ "$choice_small" == '}' ]]; then
-		echo "Exiting..."
-		break
-	else
-		echo -e "\e[1;31mInvalid choice. Please enter '1' or '2'.\e[0m"
+						elif [[ "$choice" == 2 ]]; then
+							manual_mode_imgs
+						else
+							echo -e "\e[1;31mError: Invalid choice: $choice\e[0m"
 						fi
-
-
-
 					done
 					;;
 
