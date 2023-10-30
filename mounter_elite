@@ -212,7 +212,7 @@ clear
 }
 
 select_and_convert_files_to_iso_multithreaded() {
-    local dir_path="$1"
+    
     read -r -e -p "${BOLD}${YELLOW}Enter a valid directory path or '}' to return${RESET}: " dir_path
     if [[ "$dir_path" == '}' ]]; then
         echo "Exiting List Mode..."
@@ -246,7 +246,7 @@ select_and_convert_files_to_iso_multithreaded() {
     done
 
     while true; do
-        read -r -p "${YELLOW}${BOLD}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
+        read -r -e -p "${YELLOW}${BOLD}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
 	if [ "$input" == "}" ]; then
             echo "Exiting selection mode..."
             break
@@ -273,9 +273,12 @@ select_and_convert_files_to_iso_multithreaded() {
             if [ "$selected_with_brace" = true ]; then
                 # Call convert_to_iso_parallel to convert the selected files to ISO format
                 convert_to_iso_parallel "${selected[@]}"
+		unset selected
+        	
             else
+                echo -e "\e[1;31mNo '}' found at the end of the selections, conversions canceled.\e[0m"
+                unset selected
 		continue
-                echo -e "\e[1;31mNo '}' found at the end of the selections.\e[0m"
             fi
             
         fi
@@ -300,17 +303,19 @@ convert_to_iso_parallel() {
                 results+=("The file '$input_path' is already in ISO format.")
             else
                 if command -v ccd2iso &>/dev/null; then
-                    # Define the output path for the ISO file
+                    # Define the output path for the ISO file with only the .iso extension
                     local output_path="${input_path%.*}.iso"
                     
-                    # Use 'xargs' to run the conversion in parallel
-                    echo "$input_path" | xargs -I{} -P "$(nproc)" -n 1 sh -c '
-                        if ccd2iso "{}" "{}.iso"; then
-                            echo "Image file converted to ISO: {}.iso"
+                    # Check if the output ISO file already exists
+                    if [ -e "$output_path" ]; then
+                        results+=("The output ISO file '$output_path' already exists. Skipping conversion.")
+                    else
+                        if ccd2iso "$input_path" "$output_path"; then
+                            results+=("Image file converted to ISO: $output_path")
                         else
-                            echo "Conversion of {} failed."
+                            results+=("Conversion of $input_path failed.")
                         fi
-                    ' &
+                    fi
                 else
                     results+=("ccd2iso is not installed. Please install it before using this option.")
                 fi
@@ -319,9 +324,6 @@ convert_to_iso_parallel() {
             results+=("The specified input file '$input_path' does not exist.")
         fi
     done
-
-    # Wait for all background processes to finish
-    wait
 
     # Display all results
     for result in "${results[@]}"; do
@@ -412,7 +414,7 @@ mounted_isos=()
 clear
 while true; do
 
-	clear
+clear
 
 echo -e "\e[1;32m _____          ___ _____ _____   ___ __   __  ___  _____ _____   __   __  ___ __   __ _   _ _____ _____ ____          _    __   ___  
 |  ___)   /\   (   |_   _)  ___) (   )  \ /  |/ _ \|  ___)  ___) |  \ /  |/ _ (_ \ / _) \ | (_   _)  ___)  _ \        / |  / /  / _ \ 
