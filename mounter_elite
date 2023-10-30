@@ -198,7 +198,7 @@ if [ -z "${img_iso_files[*]}" ]; then
     selected_with_brace=false
 		
 		# Prompt the user to select files by number
-    echo "List of ISO files in '$dir_path' and its subdirectories (up to 5 levels deep):"
+    echo -e "List of ISO files in '$dir_path' and its subdirectories (up to 5 levels deep),\e[1;32m duplicates are disabled by default, so mount away ;) :\e[0m"
     echo " "
     for ((i = 0; i < ${#img_iso_files[@]}; i++)); do
         echo "$((i + 1)): ${img_iso_files[i]}"
