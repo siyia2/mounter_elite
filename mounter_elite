@@ -396,6 +396,7 @@ function manual_mode_imgs() {
 # Array to store the list of mounted ISOs
 mounted_isos=()
 clear
+
 while true; do
 
 clear
@@ -414,82 +415,85 @@ echo "Select an option:
 4) Convert BIN(s)/IMG(s) to ISO(s)
 5) List Mounted ISO(s)
 6) Exit"
-read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
-			case $choice in
-				1)
-					while true; do
-						read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to return:${RESET} " choice_small
 
-						case "$choice_small" in
-							1)
-								
-								# Call your list_iso_files_multithreaded function here
-								clear
-								select_and_mount_files_by_number
-								;;
-							2)	
-								# Call your manual_mode_isos function here
-								manual_mode_isos
-								;;
-							'}')
-								echo "Exiting..."
-								break
-								;;
-							*)
-								echo -e "\e[1;31mInvalid Choice\e[0m"
-								;;
-						esac
-					done
-					;;
-				2)
-					# Call your unmount_iso_parallel_parallel function here
-					unmount_iso_parallel
-					pause
-					;;
-				3)
-					# Call your unmount_all_isos_parallel function here
-					unmount_all_isos_parallel
-					pause
-					;;
-				4)
-					while true; do
-						read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to return:${RESET} " choice_small
 
-						if [[ "$choice" == '}' ]]; then
-							echo "Exiting..."
-							break
-						elif [[ "$choice_small" == 1 ]]; then
-							echo -e "\e[1;34mOperating In List Mode\e[0m"
-					# Call your select_and_convert_files_to_iso_multithreaded function here
-						clear
-					select_and_convert_files_to_iso_multithreaded
-					
-								
-						# Call your manual_mode_imgs function here
-						elif [[ "$choice_small" == 2 ]]; then
-							manual_mode_imgs
-						elif [[ "$choice_small" == '}' ]]; then
-							break
-						else
-							echo -e "\e[1;31mError: Invalid choice: $choice_small\e[0m"
-						fi
-					done
-					;;
+    read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 
-				5)
-					echo "Mounted ISO(s):"
-					echo ""
-					find /mnt -maxdepth 1 -type d -name "iso*" -exec sh -c 'echo -e "\033[1;35m{}\033[0m"' \;
-					pause
-					#nohup xdg-open /mnt/ >/dev/null 2>&1 &
-					;;
-				6)
-					echo "Exiting the program..."
-					exit 0
-					;;
-				*)
-					echo -e "\e[1;31mInvalid choice. Please enter 1, 2, 3, 4, 5 or 6.\e[0m"
-					pause
-					;;
-			esac
-		done
+    case $choice in
+        1)
+            while true; do
+                read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to return:${RESET} " choice_small
+
+                case "$choice_small" in
+                    1)
+                        # Call your list_iso_files_multithreaded function here
+                        clear
+                        select_and_mount_files_by_number
+                        ;;
+                    2)
+                        # Call your manual_mode_isos function here
+                        manual_mode_isos
+                        ;;
+                    '}')
+                        echo "Returning to the main menu..."
+                        break
+                        ;;
+                    *)
+                        echo -e "\e[1;31mInvalid Choice\e[0m"
+                        ;;
+                esac
+            done
+            ;;
+        2)
+            # Call your unmount_iso_parallel_parallel function here
+            unmount_iso_parallel
+            pause
+            ;;
+        3)
+            # Call your unmount_all_isos_parallel function here
+            unmount_all_isos_parallel
+            pause
+            ;;
+        4)
+            while true; do
+                read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to return:${RESET} " choice_small
+
+                case "$choice_small" in
+                    1)
+                        echo -e "\e[1;34mOperating In List Mode\e[0m"
+                        # Call your select_and_convert_files_to_iso_multithreaded function here
+                        clear
+                        select_and_convert_files_to_iso_multithreaded
+                        ;;
+                    2)
+                        # Call your manual_mode_imgs function here
+                        manual_mode_imgs
+                        ;;
+                    '}')
+                        echo "Returning to the main menu..."
+                        break
+                        ;;
+                    *)
+                        echo -e "\e[1;31mError: Invalid choice: $choice_small\e[0m"
+                        ;;
+                esac
+            done
+            ;;
+        5)
+            echo "Mounted ISO(s):"
+            echo ""
+            find /mnt -maxdepth 1 -type d -name "iso*" -exec sh -c 'echo -e "\033[1;35m{}\033[0m"' \;
+            pause
+            ;;
+        6)
+            echo "Exiting the program..."
+            exit 0
+            ;;
+        *)
+            echo -e "\e[1;31mInvalid choice. Please enter 1, 2, 3, 4, 5 or 6.\e[0m"
+            pause
+            ;;
+    esac
+done
+done
+
