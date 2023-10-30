@@ -223,7 +223,6 @@ select_and_mount_files_by_number() {
 
 select_and_convert_files_to_iso_multithreaded() {
 	local dir_path="$1"
-	local selected=()  # Initialize an empty array for selected files
 
     # Check if the directory exists and is accessible
     if [ ! -d "$dir_path" ] || [ ! -r "$dir_path" ]; then
@@ -241,36 +240,39 @@ select_and_convert_files_to_iso_multithreaded() {
 	    return
     fi
 
-    while true; do
-	    # Display the list of files
-	    echo "List of .img and .bin files over 50MB in '$dir_path' and its subdirectories (up to 5 levels deep):"
-	    for ((i = 0; i < ${#img_bin_files[@]}; i++)); do
-		    echo "$((i + 1)): ${img_bin_files[i]}"
-	    done
+    # Prompt the user to select files by number
 
-	    read -r -p "${YELLOW}${BOLD}Enter your selections for ISO conversions (1 or 1 2 3 or '}' to return):${RESET}${BOLD} " input
-
-	    IFS=" " read -ra user_selections <<< "$input"
-
-	    for selection in "${user_selections[@]}"; do
-		    if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -le "${#img_bin_files[@]}" ]; then
-			    selected+=("${img_bin_files[$selection - 1]}")
-			    echo -e "\e[1;32mSelected: ${img_bin_files[$selection - 1]}\e[0m"
-		    elif [ "$selection" == "}" ]; then
-			    if [ ${#selected[@]} -eq 0 ]; then
-				    echo -e "\e[1;31mNo files were selected for conversion.\e[0m"
-				    return
-			    fi
-			    # Call convert_to_iso to convert the selected files to ISO format
-			    convert_to_iso "${selected[@]}"
-			    return
-		    else
-			    echo -e "\e[1;31mInvalid selection. Enter the numbers of the files to select & convert, e.g. (1 } or 1 2 }, or '}' to return.\e[0m"
-		    fi
-	    done
+    echo "List of .img and .bin files over 50MB in '/mnt/D' and its subdirectories (up to 5 levels deep):"
+    echo " "
+    for ((i = 0; i < ${#img_bin_files[@]}; i++)); do
+	    echo "$((i + 1)): ${img_bin_files[i]}"
     done
-}
+    while true; do
+	    read -r -p "${YELLOW}${BOLD}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
 
+	# Split the user's input into an array of selections, separated by spaces.
+	IFS=" " read -ra user_selections <<<"$input"
+
+	for selection in "${user_selections[@]}"; do
+		if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -le "${#img_bin_files[@]}" ]; then
+			selected+=("${img_bin_files[$selection - 1]}")
+			echo -e "\e[1;32mSelected: ${img_bin_files[$selection - 1]}\e[0m"
+		elif [ "$selection" == "}" ]; then
+			break 2
+		else
+			echo -e "\e[1;31mInvalid selection. Enter the numbers of the files to select & convert, e.g. (1 } or 1 2 }, or '}' to return.\e[0m"
+		fi
+	done
+done
+
+if [ ${#selected[@]} -eq 0 ]; then
+	echo -e "\e[1;31mNo files were selected for conversion.\e[0m"
+	return
+fi
+
+	# Call convert_to_iso to convert the selected files to ISO format
+	convert_to_iso "${selected[@]}"
+}
 
 
 # Function to convert image files to ISO
