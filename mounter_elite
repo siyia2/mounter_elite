@@ -12,41 +12,31 @@ iso_paths=()
 
 # Function to mount an ISO file in parallel
 mount_iso_parallel() {
-	local iso_files=("$@")
+    local iso_files=("$@")
+    declare -A mounted_isos=()
 
-	for iso_file in "${iso_files[@]}"; do
-		while [ -e "/mnt/iso_$iso_count" ]; do
-			((iso_count++)) # Increment iso_count until an available number is found
-		done
+    for iso_file in "${iso_files[@]}"; do
+        if [ -n "${mounted_isos[$iso_file]}" ]; then
+            echo "ISO file '$iso_file' is already mounted at '${mounted_isos[$iso_file]}'."
+        else
+            while [ -e "/mnt/iso_$iso_count" ]; do
+                ((iso_count++))
+            done
 
-		local mount_point
-		for ((i = 1; ; i++)); do
-			mount_point="/mnt/iso_$i"
-			if [ ! -e "$mount_point" ]; then
-				break
-			fi
-		done
+            local mount_point="/mnt/iso_$iso_count"
 
-		if [ -e "$mount_point" ]; then
-			echo "An ISO is already mounted at '$mount_point'."
-		else
-			sudo mkdir -p "$mount_point"
+            sudo mkdir -p "$mount_point"
+            (
+                sudo mount -o loop "$iso_file" "$mount_point"
+                echo "ISO file '$iso_file' mounted at '$mount_point'."
+                mounted_isos["$iso_file"]=$mount_point
+            ) &
+        fi
+    done
 
-			(
-			# Subshell for parallel execution
-			sudo mount -o loop "$iso_file" "$mount_point"
-			echo "ISO file '$iso_file' mounted at '$mount_point'."
-			mounted_isos+=("$mount_point") # Add the mount point to the list
-			) &                             # Run the subshell in the background
-		fi
+    wait
 
-	done
-
-	# Wait for all background jobs to complete
-	wait
-
-	echo -e "\e[1;32mAll ISO files have been mounted.\e[0m"
-	mounted_isos+=("$mount_point")
+    echo -e "\e[1;32mAll ISO files have been mounted.\e[0m"
 }
 
 # Function to unmount a specific ISO or multiple ISOs in parallel
@@ -188,7 +178,7 @@ select_and_mount_files_by_number() {
 		return
 	else
 		while true; do
-			read -r -e -p "${YELLOW}${BOLD}Enter the number(s) of the file(s) to select&mount e.g. ( 1 } or 1 3 5 } or '}' to return):${RESET} " input
+			read -r -e -p "${YELLOW}${BOLD}Enter the number(s) of the file(s) to select&mount e.g. ( 1 } or 1 3 5 } or '}' to return) :${RESET} " input
 
 		# Split input by spaces
 		read -r -a num_array <<<"$input"
@@ -218,16 +208,21 @@ select_and_mount_files_by_number() {
 		fi
 	done
 	fi
-
+clear
 }
 
 select_and_convert_files_to_iso_multithreaded() {
-	local dir_path="$1"
+    local dir_path="$1"
+    read -r -e -p "${BOLD}${YELLOW}Enter a valid directory path or '}' to return${RESET}: " dir_path
+    if [[ "$dir_path" == '}' ]]; then
+        echo "Exiting List Mode..."
+        return
+    fi
 
     # Check if the directory exists and is accessible
     if [ ! -d "$dir_path" ] || [ ! -r "$dir_path" ]; then
-	    echo -e "\e[1;31mError: The specified directory does not exist or is not accessible.\e[0m"
-	    return
+        echo -e "\e[1;31mError: The specified directory does not exist or is not accessible.\e[0m"
+        return
     fi
 
     # List .img and .bin files that meet specific criteria
@@ -236,80 +231,105 @@ select_and_convert_files_to_iso_multithreaded() {
     IFS=$'\n' read -d '' -r -a img_bin_files < <(find "$dir_path" -maxdepth 5 -type f \( -iname "*.img" -o -iname "*.bin" \) -size +50000c -print0 | xargs -0 -r -P "$(nproc)" realpath)
 
     if [ -z "${img_bin_files[*]}" ]; then
-	    echo -e "\e[1;31mNo .img or .bin files over 50MB were found.\e[0m"
-	    return
+        echo -e "\e[1;31mNo .img or .bin files over 50MB were found.\e[0m"
+        return
     fi
 
-    # Prompt the user to select files by number
+    selected=()  # Initialize the 'selected' array
+    selected_with_brace=false
 
-    echo "List of .img and .bin files over 50MB in '/mnt/D' and its subdirectories (up to 5 levels deep):"
+    # Prompt the user to select files by number
+    echo "List of .img and .bin files over 50MB in '$dir_path' and its subdirectories (up to 5 levels deep):"
     echo " "
     for ((i = 0; i < ${#img_bin_files[@]}; i++)); do
-	    echo "$((i + 1)): ${img_bin_files[i]}"
+        echo "$((i + 1)): ${img_bin_files[i]}"
     done
+
     while true; do
-	    read -r -p "${YELLOW}${BOLD}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
+        read -r -p "${YELLOW}${BOLD}Enter your selections for ISO conversions e.g. ( 1 } or 1 2 3 } or '}' to return):${RESET}${BOLD} " input
+	if [ "$input" == "}" ]; then
+            echo "Exiting selection mode..."
+            break
+	fi
+        # Split the user's input into an array of selections, separated by spaces.
+        IFS=" " read -ra user_selections <<<"$input"
 
-	# Split the user's input into an array of selections, separated by spaces.
-	IFS=" " read -ra user_selections <<<"$input"
+        for selection in "${user_selections[@]}"; do
+            if [[ "$selection" =~ ^[0-9]+$ ]]; then
+                if [ "$selection" -le "${#img_bin_files[@]}" ]; then
+                    selected+=("${img_bin_files[$selection - 1]}")
+                    
+                else
+                    echo -e "\e[1;31mInvalid selection. Enter valid numbers for files to select, e.g. 1, 2, 3, etc.\e[0m"
+                fi
+            elif [ "$selection" == "}" ]; then
+                selected_with_brace=true
+            else
+                echo -e "\e[1;31mInvalid input. Enter valid numbers for file selection or '}' to finish.\e[0m"
+            fi
+        done
 
-	for selection in "${user_selections[@]}"; do
-		if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -le "${#img_bin_files[@]}" ]; then
-			selected+=("${img_bin_files[$selection - 1]}")
-			echo -e "\e[1;32mSelected: ${img_bin_files[$selection - 1]}\e[0m"
-		elif [ "$selection" == "}" ]; then
-			break 2
-		else
-			echo -e "\e[1;31mInvalid selection. Enter the numbers of the files to select & convert, e.g. (1 } or 1 2 }, or '}' to return.\e[0m"
-		fi
-	done
-done
-
-if [ ${#selected[@]} -eq 0 ]; then
-	echo -e "\e[1;31mNo files were selected for conversion.\e[0m"
-	return
-fi
-
-	# Call convert_to_iso to convert the selected files to ISO format
-	convert_to_iso "${selected[@]}"
+        if [ ${#selected[@]} -gt 0 ]; then
+            if [ "$selected_with_brace" = true ]; then
+                # Call convert_to_iso_parallel to convert the selected files to ISO format
+                convert_to_iso_parallel "${selected[@]}"
+            else
+		continue
+                echo -e "\e[1;31mNo '}' found at the end of the selections.\e[0m"
+            fi
+            
+        fi
+    done
 }
 
-
 # Function to convert image files to ISO
-convert_to_iso() {
-	local input_paths=("$@")
-	local results=()  # Create an array to store the results
+convert_to_iso_parallel() {
+    local input_paths=("$@")
+    local results=()  # Create an array to store the results
 
-	for input_path in "${input_paths[@]}"; do
-		if [ "$input_path" == '}' ]; then
-			return
-		fi
-		if [ -e "$input_path" ]; then
-			if [[ "${input_path,,}" == *.iso ]]; then
-				results+=("The file '$input_path' is already in ISO format.")
-			else
-				if command -v ccd2iso &>/dev/null; then
-					local output_path="${input_path%.*}.iso"
-					ccd2iso "$input_path" "$output_path"
-					if [ -e "$output_path" ]; then
-						results+=("Image file converted to ISO: $output_path")
-					else
-						results+=("Conversion of '$input_path' failed.")
-					fi
-				else
-					results+=("ccd2iso is not installed. Please install it before using this option.")
-				fi
-			fi
-		else
-			results+=("The specified input file '$input_path' does not exist.")
-		fi
-	done
+    for input_path in "${input_paths[@]}"; do
+        # Check if the input_path is a closing curly brace '}'
+        if [ "$input_path" == '}' ]; then
+            break  # Exit the loop if a closing brace is encountered
+        fi
+
+        # Check if the input file exists
+        if [ -e "$input_path" ]; then
+            # Check if the file is already in ISO format
+            if [[ "${input_path,,}" == *.iso ]]; then
+                results+=("The file '$input_path' is already in ISO format.")
+            else
+                if command -v ccd2iso &>/dev/null; then
+                    # Define the output path for the ISO file
+                    local output_path="${input_path%.*}.iso"
+                    
+                    # Use 'xargs' to run the conversion in parallel
+                    echo "$input_path" | xargs -I{} -P "$(nproc)" -n 1 sh -c '
+                        if ccd2iso "{}" "{}.iso"; then
+                            echo "Image file converted to ISO: {}.iso"
+                        else
+                            echo "Conversion of {} failed."
+                        fi
+                    ' &
+                else
+                    results+=("ccd2iso is not installed. Please install it before using this option.")
+                fi
+            fi
+        else
+            results+=("The specified input file '$input_path' does not exist.")
+        fi
+    done
+
+    # Wait for all background processes to finish
+    wait
 
     # Display all results
     for result in "${results[@]}"; do
-	    echo -e "${BOLD}$result"
+        echo -e "${result}"
     done
 }
+
+
 
 function manual_mode_imgs() {
 	echo -e "\e[1;34mOperating On Manual Mode\e[0m"
@@ -328,7 +348,7 @@ function manual_mode_imgs() {
 		IFS=" " read -a input_paths <<<"$input_paths"
 
 		# Perform the conversion for Manual Mode
-		convert_to_iso "${input_paths[@]}"
+		convert_to_iso_parallel "${input_paths[@]}"
 	}
 
 
@@ -418,6 +438,7 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 							1)
 								
 								# Call your list_iso_files_multithreaded function here
+								clear
 								list_iso_files_multithreaded "$dir_path"
 								;;
 							2)	
@@ -446,34 +467,25 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 					;;
 				4)
 					while true; do
-						read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to return:${RESET} " choice
+						read -r -e -p "${YELLOW}${BOLD}1) List Mode, 2) Manual Mode, or '}' to return:${RESET} " choice_small
 
 						if [[ "$choice" == '}' ]]; then
 							echo "Exiting..."
 							break
-						elif [[ "$choice" == 1 ]]; then
+						elif [[ "$choice_small" == 1 ]]; then
 							echo -e "\e[1;34mOperating In List Mode\e[0m"
-
-							while true; do
-								read -r -e -p "${YELLOW}${BOLD}Enter directory path for BIN/IMG list generation, or '}' to return:${RESET} " dir_path
-
-								if [[ "$dir_path" == '}' ]]; then
-									echo "Exiting List Mode..."
-									break
-								elif [[ -d "$dir_path" ]]; then
-									# Call your select_and_convert_files_to_iso_multithreaded function here
-									select_and_convert_files_to_iso_multithreaded "$dir_path"
-
-			# Optionally, provide an option to return to the main menu
-			read -r -p "Press Enter to return to the main menu..."
-		else
-			echo -e "\e[1;31mError: Invalid Path: $dir_path\e[0m"
-								fi
-							done
-						elif [[ "$choice" == 2 ]]; then
+					# Call your select_and_convert_files_to_iso_multithreaded function here
+						clear
+					select_and_convert_files_to_iso_multithreaded
+					
+								
+						# Call your manual_mode_imgs function here
+						elif [[ "$choice_small" == 2 ]]; then
 							manual_mode_imgs
+						elif [[ "$choice_small" == '}' ]]; then
+							break
 						else
-							echo -e "\e[1;31mError: Invalid choice: $choice\e[0m"
+							echo -e "\e[1;31mError: Invalid choice: $choice_small\e[0m"
 						fi
 					done
 					;;
