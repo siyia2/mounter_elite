@@ -283,34 +283,27 @@ convert_to_iso_parallel() {
         # Check if the input_path is a closing curly brace '}'
         if [ "$input_path" == '}' ]; then
             break  # Exit the loop if a closing brace is encountered
-        fi
-
-        # Check if the input file exists
-        if [ -e "$input_path" ]; then
+        elif [ ! -e "$input_path" ]; then
+            results+=("The specified input file '$input_path' does not exist.")
+        else
             # Check if the file is already in ISO format
             if [[ "${input_path,,}" == *.iso ]]; then
                 results+=("The file '$input_path' is already in ISO format.")
+            elif ! command -v ccd2iso &>/dev/null; then
+                results+=("ccd2iso is not installed. Please install it before using this option.")
             else
-                if command -v ccd2iso &>/dev/null; then
-                    # Define the output path for the ISO file with only the .iso extension
-                    local output_path="${input_path%.*}.iso"
-                    
-                    # Check if the output ISO file already exists
-                    if [ -e "$output_path" ]; then
-                        results+=("The output ISO file '$output_path' already exists. Skipping conversion.")
-                    else
-                        if ccd2iso "$input_path" "$output_path"; then
-                            results+=("Image file converted to ISO: $output_path")
-                        else
-                            results+=("Conversion of $input_path failed.")
-                        fi
-                    fi
+                # Define the output path for the ISO file with only the .iso extension
+                local output_path="${input_path%.*}.iso"
+
+                # Check if the output ISO file already exists
+                if [ -e "$output_path" ]; then
+                    results+=("The output ISO file '$output_path' already exists. Skipping conversion.")
+                elif ccd2iso "$input_path" "$output_path"; then
+                    results+=("Image file converted to ISO: $output_path")
                 else
-                    results+=("ccd2iso is not installed. Please install it before using this option.")
+                    results+=("Conversion of $input_path failed.")
                 fi
             fi
-        else
-            results+=("The specified input file '$input_path' does not exist.")
         fi
     done
 
@@ -343,47 +336,32 @@ function manual_mode_imgs() {
 	}
 
 
-	function manual_mode_isos() {
+function manual_mode_isos() {
     echo -e "\e[1;34mOperating in Manual Mode\e[0m"
     valid_paths=()
-    invalid_paths_str=""
     mounting_complete=false
 
     while true; do
         IFS= read -r -e -p "${YELLOW}${BOLD}Enter path(s) of ISO files (separate by space), or '}' to return:${RESET} " -a iso_paths
 
-        if [ "${iso_paths[@]}" == "}" ]; then
+        if [ "${iso_paths[*]}" = "}" ]; then
             if $mounting_complete; then
                 echo "Exiting Manual Mode..."
-                break
             else
                 echo -e "\e[1;31mExiting Manual Mode...No ISOs for mounting were selected\e[0m"
-                break
             fi
+            break
         fi
 
-        invalid_paths=()
         for iso_path in "${iso_paths[@]}"; do
             if [ -e "$iso_path" ] && [ -f "$iso_path" ]; then
-                valid_paths+=("$iso_path")
+                # Call your mount_iso_parallel function here
+                mount_iso_parallel "$iso_path"
+                mounting_complete=true
             else
-                invalid_paths+=("$iso_path")
+                echo -e "\e[1;31mInvalid Path: $iso_path\e[0m"
             fi
         done
-
-        if [ ${#invalid_paths[@]} -gt 0 ]; then
-            invalid_paths_str=$(IFS=" "; echo "${invalid_paths[*]}")
-            echo "Invalid Path(s): $invalid_paths_str"
-        else
-            for iso_path in "${valid_paths[@]}"; do
-                if [ -e "$iso_path" ]; then
-                    # Call your mount_iso_parallel function here
-                    mount_iso_parallel "$iso_path"
-                    mounting_complete=true
-                fi
-            done
-            valid_paths=()  # Clear valid_paths for the next iteration
-        fi
     done
 }
 	# Function to pause and wait for a key press
