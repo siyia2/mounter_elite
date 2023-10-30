@@ -457,7 +457,7 @@ echo "Select an option:
 1) List and Mount ISOs
 2) Unmount ISOs
 3) Clean and Unmount All ISOs
-4) Convert BIN/IMG to ISO
+4) Convert BIN(s)/IMG(s) to ISO(s)
 5) List Mounted ISO(s)
 6) Exit"
 read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
@@ -523,10 +523,9 @@ read -r -e -p "${YELLOW}${BOLD}Enter the number of your choice:${RESET} " choice
 					;;
 
 				5)
-					
 					echo "Mounted ISO(s):"
 					echo ""
-					find /mnt -maxdepth 1 -type d -name "iso*" -exec sh -c 'echo -e "\033[1;34m{}\033[0m"' \;
+					find /mnt -maxdepth 1 -type d -name "iso*" -exec sh -c 'echo -e "\033[1;35m{}\033[0m"' \;
 					pause
 					#nohup xdg-open /mnt/ >/dev/null 2>&1 &
 					;;
